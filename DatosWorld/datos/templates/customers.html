@@ -1,0 +1,159 @@
+{% extends 'base.html' %}
+
+{% load static %}
+
+{% block title %}Add a new customer{% endblock %}
+{% block meta %}Datos{% endblock %}
+
+{% block content %}
+
+          <!-- Content wrapper -->
+          <div class="content-wrapper">
+            <!-- Content -->
+
+            <div class="container-xxl flex-grow-1 container-p-y">
+              <div class="container-xxl flex-grow-1 container-p-y">
+                <div class="header-container d-flex justify-content-between align-items-center">
+                  <h4 class="fw-bold py-3 mb-4">
+                    <a href="/" class="text-decoration-none">
+                      <span class="text-muted fw-light">Home /</span>
+                    </a>
+                    Customers
+                  </h4>
+                  <div class="button-container d-flex align-items-center">
+                    <!-- Replaced the link with a button to trigger the new modal -->
+                    <button 
+                      class="btn btn-primary mr-2" 
+                      data-bs-toggle="modal" 
+                      data-bs-target="#basicModal">
+                      <strong>Add Customer</strong>
+                    </button>
+                  </div>
+                </div>
+              
+                <!-- New Modal -->
+                <div class="modal fade" id="basicModal" tabindex="-1" aria-hidden="true">
+                  <div class="modal-dialog" role="document">
+                    <div class="modal-content">
+                      <div class="modal-header">
+                        <h5 class="modal-title" id="exampleModalLabel1">Add New Customer</h5>
+                        <button
+                          type="button"
+                          class="btn-close"
+                          data-bs-dismiss="modal"
+                          aria-label="Close"
+                        ></button>
+                      </div>
+                      <div class="modal-body">
+                        <!-- Django Form -->
+                        <form method="POST" action="{% url 'customers' %}" id="customerForm">
+                          {% csrf_token %}
+                          <div class="row g-2">
+                            <div class="col mb-0">
+                              <label for="{{ form.first_name.id_for_label }}" class="form-label">First Name</label>
+                                <div class="col-sm-10">
+                                  <input type="text" class="form-control" name="{{ form.first_name.name }}" id="{{ form.first_name.id_for_label }}"  placeholder="{{ form.first_name.label }}"/>
+                              </div>
+                            </div>
+                            <div class="col mb-0">
+                              <label for="{{ form.last_name.id_for_label }}" class="form-label">Last Name</label>
+                                <div class="col-sm-10">
+                                  <input type="text" class="form-control" name="{{ form.last_name.name }}" id="{{ form.last_name.id_for_label }}"  placeholder="{{ form.last_name.label }}"/>
+                              </div>
+                            </div>
+                          </div>
+                          <div class="row">
+                            <div class="col mb-3">
+                              <label for="{{ form.company.id_for_label }}" class="form-label">Company (Optional)</label>
+                              <input type="text" class="form-control" name="{{ form.company.name }}" id="{{ form.company.id_for_label }}"  placeholder="{{ form.company.label }}"/>
+                            </div>
+                          </div>
+                          <div class="row g-2">
+                            <div class="col mb-0">
+                              <label for="{{ form.email.id_for_label }}" class="form-label">Email</label>
+                                <div class="col-sm-10">
+                                  <input type="email" class="form-control" name="{{ form.email.name }}" id="{{ form.email.id_for_label }}"  placeholder="{{ form.email.label }}"/>
+                              </div>
+                            </div>
+                            <div class="col mb-0">
+                              <label for="{{ form.phone.id_for_label }}" class="form-label">Phone</label>
+                                <div class="col-sm-10">
+                                  <input type="text" class="form-control" name="{{ form.phone.name }}" id="{{ form.phone.id_for_label }}"  placeholder="{{ form.phone.label }}"/>
+                              </div>
+                            </div>
+                          </div>
+                          <div class="row">
+                            <div class="col mb-3">
+                              <label for="{{ form.address.id_for_label }}" class="form-label">Address</label>
+                              <input type="textarea" class="form-control" name="{{ form.address.name }}" id="{{ form.address.id_for_label }}"  placeholder="{{ form.address.label }}"/>
+                            </div>
+                          </div>
+                          <div class="row">
+                            <div class="col mb-3">
+                                <button type="submit" class="btn btn-primary">Add Customer</button>
+                            </div>
+                        </form>
+                      </div>
+                      
+                    </div>
+                    </div>
+                  </div>
+                </div>
+              
+              
+
+              
+
+              <!-- Basic Bootstrap Table -->
+              <div class="card">
+                <div class="table-responsive text-nowrap">
+                  <table class="table">
+                    <thead>
+                      <tr>
+                        <th>Name</th>
+                        {% comment %} <th>Company</th> {% endcomment %}
+                        <th>Phone</th>
+                        <th>Company</th>
+                        <th>Email</th>
+                        <th>Address</th>
+                        <th>Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody class="table-border-bottom-0">
+                      {% for customer in customers %}
+                      <tr>
+                        <td><i class="fab fa-angular fa-lg text-danger me-3"></i> <strong>{{customer.first_name}} {{customer.last_name}}</strong></td>
+                        <td>{{customer.phone}}</td>
+                        <td>{{customer.company}}</td>
+                        <td>{{customer.email}}</td>
+                        <td>{{customer.address}}</td>
+                        <td>
+                          <div class="dropdown">
+                            <button type="button" class="btn p-0 dropdown-toggle hide-arrow" data-bs-toggle="dropdown">
+                              <i class="bx bx-dots-vertical-rounded"></i>
+                            </button>
+                            <div class="dropdown-menu">
+                              <a class="dropdown-item" href="javascript:void(0);"
+                                ><i class="bx bx-edit-alt me-1"></i> Edit</a
+                              >
+                              <a class="dropdown-item" href="javascript:void(0);"
+                                ><i class="bx bx-trash me-1"></i> Delete</a
+                              >
+                            </div>
+                          </div>
+                        </td>
+                      </tr>
+                      
+                      
+                      {% endfor %}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+              <!--/ Basic Bootstrap Table -->
+             
+              <!--/ Responsive Table -->
+            </div>
+            <!-- / Content -->
+
+            {% endblock %}
