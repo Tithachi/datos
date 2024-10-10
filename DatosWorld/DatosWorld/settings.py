@@ -129,6 +129,19 @@ STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
+# Email settings for SMTP without TLS/SSL on port 25
+# EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+# EMAIL_HOST = 'mail.datoscw.com'
+# EMAIL_PORT = 587  # Port 587 for TLS
+# EMAIL_USE_TLS = True  # Enable TLS encryption
+# EMAIL_USE_SSL = False  # No SSL
+# EMAIL_HOST_USER = 'timothy.chimfwembe@datoscw.com'
+# EMAIL_HOST_PASSWORD = 'Charecter18!'
+# DEFAULT_FROM_EMAIL = 'info@datoscw.com'
+
+
+
+
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
 

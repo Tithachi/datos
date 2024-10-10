@@ -1,41 +1,97 @@
 from django.shortcuts import render, redirect
 from .models import *
 from .forms import ItemForm, CustomerForm, QuotationItemFormSet, QuotationForm
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect,get_object_or_404
 from .forms import QuotationForm, QuotationItemFormSet
 from .models import Quotation, Item
 from io import BytesIO
 from django.http import HttpResponse
 from django.template.loader import get_template
 from django.views import View
-from xhtml2pdf import pisa
+from .pdf_utils import generate_quote
+import pandas as pd
 
-def render_to_pdf(template_scr, context_dict={}):
-    template = get_template(template_scr)
-    html = template.render(context_dict)
-    result = BytesIO()
-    pdf = pisa.pisaDocument(BytesIO(html.encode("ISO-8859-1")), result)
-    if not pdf.err:
-        return HttpResponse(result.getvalue(), content_type='application/pdf')
-    return None 
-
-data={
-    "company":"Ndetelako",
-    "address":"11586 Teagles Rd Makeni",
-    "city":"Lusaka",
-    "state":"Lusaka",
-    "zipcode":"10101",
-    "phone":"260 96 4394236",
-    "email":"thapelochimfwembe@gmail.com",
-    "website":"datos.world" 
+def view_quote_pdf(request, entry_id):
+    # Fetch the Quotation entry from the database
+    quotation = get_object_or_404(Quotation, id=entry_id)
+    
+    # Fetch related items and calculate totals
+    quotation_items = QuotationItem.objects.filter(quotation=quotation)
+    
+    # Create a list of items for the PDF table
+    items = []
+    for q_item in quotation_items:
+        item = q_item.item  # Assuming 'item' is linked to another model with 'description' and 'unit_price' fields
+        item_data = {
+            "description": f"{item.name}, {item.description}",
+            "rate": f"{item.unit_price:.2f}",
+            "qty": str(q_item.quantity),
+            "tax": "20.00",  # Example tax value
+            "discount": "5.00",  # Example discount value
+            "amount": f"{(item.unit_price * q_item.quantity):.2f}",
+        }
+        items.append(item_data)
+    
+    # Calculate totals for the PDF
+    subtotal = sum(float(i['amount']) for i in items)
+    tax = subtotal * 0.16  # Example 16% tax
+    total = subtotal + tax
+    totals = {
+        'subtotal': f"ZMW {subtotal:.2f}",
+        'discount': 'ZMW 0.00',  # Example value
+        'shipping': 'ZMW 0.00',  # Example value
+        'tax': f"ZMW {tax:.2f}",
+        'total': f"ZMW {total:.2f}",
+        'paid': 'ZMW 0.00',  # Example value
+        'balance_due': f"ZMW {total:.2f}",
+    }
+    
+    # Dummy company details (replace with actual details or fetch from DB)
+    company_details = {
+        'name': "Datos Technology",
+        'address': "11586 Teagles Rd, Makeni, Lusaka",
+        'email': "info@datoscw.com",
+        'phone': "+260 96 4394236",
+        'payment_info': "Airtel: +260 97 5875598",
+        'notes': "Changing Worlds"
     }
 
-class ViewPDFQuote(View):
-    
-    def get(self, request, *arge, **kwargs):
-        
-        pdf = render_to_pdf('quotepdf.html', data)
-        return HttpResponse(pdf,content_type='application/pdf')
+    # Client details (from Quotation model's 'customer' foreign key)
+    client_details = {
+        'name': quotation.customer.company,
+        'email': quotation.customer.email,
+        'phone': quotation.customer.phone,
+        'address': quotation.customer.address,
+    }
+
+    # Quotation receipt info
+    receipt_info = {
+        'number': quotation.quotation_number,
+        'date': quotation.date_created.strftime('%Y-%m-%d'),
+        'due_date': quotation.expiry_date.strftime('%Y-%m-%d'),
+        'created_on': pd.Timestamp.now(),  # Simulating the created_on field for example purposes
+    }
+
+    # Create a file-like buffer to receive PDF data
+    buffer = BytesIO()
+
+    # Generate the PDF with actual data
+    generate_quote(
+        buffer,
+        svg_logo_path="C:/Users/Timothy/Desktop/Datos/DatosWorld/static/datos/assets/img/pdf_elements/datosbb.svg",
+        company_details=company_details,
+        client_details=client_details,
+        receipt_info=receipt_info,
+        items=items,
+        totals=totals,
+        watermark_path="C:/Users/Timothy/Desktop/Datos/DatosWorld/static/datos/assets/img/pdf_elements/datos_watermark.png"
+    )
+
+    # File pointer goes to the beginning of the buffer
+    buffer.seek(0)
+
+    # Return the PDF as a response for viewing in the browser
+    return HttpResponse(buffer, content_type='application/pdf')
 
 # Create your views here.
 def home(request):

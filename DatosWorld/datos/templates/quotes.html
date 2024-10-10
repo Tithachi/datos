@@ -10,7 +10,6 @@
           <!-- Content wrapper -->
           <div class="content-wrapper">
             <!-- Content -->
-
             <div class="container-xxl flex-grow-1 container-p-y">
               <div class="container-xxl flex-grow-1 container-p-y">
                 <div class="header-container d-flex justify-content-between align-items-center">
@@ -21,199 +20,184 @@
                     Quotations
                   </h4>
                   <div class="button-container d-flex align-items-center">
-                    <!-- Replaced the link with a button to trigger the new modal -->
-                    <button 
-                      class="btn btn-primary mr-2" 
-                      data-bs-toggle="modal" 
-                      data-bs-target="#basicModal">
+                    <!-- Button to trigger modal -->
+                    <button class="btn btn-primary mr-2" data-bs-toggle="modal" data-bs-target="#basicModal">
                       <strong>Add Quotation</strong>
                     </button>
                   </div>
                 </div>
-              
+          
+                <!-- Modal -->
                 <div class="modal fade" id="basicModal" tabindex="-1" aria-hidden="true">
                   <div class="modal-dialog" role="document">
-                      <div class="modal-content">
-                          <div class="modal-header">
-                              <h5 class="modal-title" id="exampleModalLabel1">Add New Quote</h5>
-                              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                          </div>
-                          <div class="modal-body">
-                              <!-- Django Form -->
-                              <form method="POST" action="{% url 'quotes' %}">
-                                {% csrf_token %}
-                                
-                                <!-- Customer and Expiry Date Section -->
-                                <div class="row g-3 mb-4">
-                                    <div class="mb-3">
-                                        <label for="{{ form.customer.id_for_label }}" class="form-label">Customer</label>
-                                        <select name="{{ form.customer.name }}" id="{{ form.customer.id_for_label }}" class="form-select" required>
-                                            <option disabled selected>Select Customer</option>
-                                            {% for customer in form.customer.field.queryset %}
-                                                <option value="{{ customer.id }}">{{ customer.first_name }} {{ customer.last_name }}</option>
-                                            {% endfor %}
-                                        </select>
-                                    </div>
-                                    
-                                    <div class="col mb-0">
-                                        <label for="{{ form.expiry_date.id_for_label }}" class="form-label">Expiry Date</label>
-                                        <input type="datetime-local" class="form-control" name="{{ form.expiry_date.name }}" id="{{ form.expiry_date.id_for_label }}" required />
-                                    </div>
-                                </div>
-                            
-                                <!-- Add Items Section -->
-                                <h5>Add Items</h5>
-                                
-                                <div id="items-section">
-                                    {{ formset.management_form }} <!-- Add this line here -->
-                            
-                                    {% for item_form in formset %}
-                                    <div class="row g-2 item-row">
-                                        <!-- Item Dropdown (1st Column) -->
-                                        <div class="col mb-3">
-                                            <label for="{{ item_form.item.id_for_label }}" class="form-label">Item</label>
-                                            <select name="{{ item_form.prefix }}-item" id="{{ item_form.item.id_for_label }}" class="form-select" required>
-                                                <option disabled selected>Select Item</option>
-                                                {% for item in items %}
-                                                    <option value="{{ item.id }}">{{ item.name }}</option>
-                                                {% endfor %}
-                                            </select>
-                                        </div>
-                                        
-                                        <!-- Quantity Input (2nd Column) -->
-                                        <div class="col mb-3">
-                                            <label for="{{ item_form.quantity.id_for_label }}" class="form-label">Quantity</label>
-                                            <input type="number" class="form-control" name="{{ item_form.prefix }}-quantity" id="{{ item_form.quantity.id_for_label }}" required />
-                                        </div>
-                                        
-                                        <!-- Remove Icon (3rd Column) -->
-                                        <div class="col-auto d-flex align-items-center justify-content-center">
-                                            <i class="menu-icon tf-icons bx bx-minus-circle remove-item" style="cursor: pointer;"></i>
-                                        </div>
-                                    </div>
-                                    {% endfor %}
-                                </div>
-                            
-                                <!-- Add Another Item Icon -->
-                                <div class="mt-3">
-                                    <i id="add-item" class="menu-icon tf-icons bx bx-plus-circle" style="cursor: pointer;"></i> Add another item
-                                </div>
-                            
-                                <!-- Submit Button -->
-                                <div class="row mt-4">
-                                    <div class="col mb-3">
-                                        <button type="submit" class="btn btn-primary">Add Quote</button>
-                                    </div>
-                                </div>
-                            </form>
-                            
-                            
-                              
-                          </div>
+                    <div class="modal-content">
+                      <div class="modal-header">
+                        <h5 class="modal-title" id="exampleModalLabel1">Add New Quote</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                       </div>
-                  </div>
-              </div>
-              
-              <script>
-              document.getElementById('add-item').addEventListener('click', function() {
-                  const itemsSection = document.getElementById('items-section');
-                  const itemRows = itemsSection.getElementsByClassName('item-row');
-                  const newItemRowIndex = itemRows.length; // Get the current index for new item row
-              
-                  const newItemRow = document.createElement('div');
-                  newItemRow.classList.add('row', 'g-2', 'item-row');
-                  newItemRow.innerHTML = `
-                      <div class="col mb-3">
-                          <label for="quotationitem_set-${newItemRowIndex}-item" class="form-label">Item</label>
-                          <select name="quotationitem_set-${newItemRowIndex}-item" id="quotationitem_set-${newItemRowIndex}-item" class="form-select" required>
-                              <option disabled selected>Select Item</option>
-                              {% for item in items %}
-                                  <option value="{{ item.id }}">{{ item.name }}</option>
-                              {% endfor %}
-                          </select>
-                      </div>
-                      <div class="col mb-3">
-                          <label for="quotationitem_set-${newItemRowIndex}-quantity" class="form-label">Quantity</label>
-                          <input type="number" class="form-control" name="quotationitem_set-${newItemRowIndex}-quantity" id="quotationitem_set-${newItemRowIndex}-quantity" required />
-                      </div>
-                      <div class="col-auto d-flex align-items-center justify-content-center">
-                          <i class="menu-icon tf-icons bx bx-minus-circle remove-item" style="cursor: pointer;"></i>
-                      </div>
-                  `;
-                  
-                  itemsSection.appendChild(newItemRow);
-              });
-              
-              // Event delegation for removing items
-              document.getElementById('items-section').addEventListener('click', function(e) {
-                  if (e.target.classList.contains('remove-item')) {
-                      const itemRow = e.target.closest('.item-row');
-                      if (itemRow) {
-                          itemRow.remove();
-                      }
-                  }
-              });
-              </script>
-              
-                
-                {% comment %} <!-- JavaScript to dynamically add/remove items -->
-                <script>
-                  document.getElementById('add-item').addEventListener('click', function() {
-                    var newItem = document.querySelector('.item-row').cloneNode(true);
-                    newItem.querySelector('input').value = '';  // Reset inputs
-                    document.getElementById('items-section').appendChild(newItem);
-                  });
-                
-                  document.addEventListener('click', function(e) {
-                    if (e.target && e.target.closest('.remove-item')) {
-                      e.target.closest('.item-row').remove();
-                    }
-                  });
-                </script> {% endcomment %}
-                
-                    
-
-              <!-- Basic Bootstrap Table -->
-              <div class="card">
-                <div class="table-responsive text-nowrap">
-                  <table class="table">
-                    <thead>
-                      <tr>
-                        <th>Quotation Number</th>
-                        <th>Customer</th>
-                        <th>Date Created</th>
-                        <th>Expiry Date</th>
-                        <th>Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody class="table-border-bottom-0">
-                      {% for quote in quotes %}
-                      <tr>
-                        <td><strong>{{ quote.quotation_number }}</strong></td>
-                        <td>{{ quote.customer.first_name }} {{ quote.customer.last_name }}</td>
-                        <td>{{ quote.date_created }}</td>
-                        <td>{{ quote.expiry_date }}</td>
-                        <td>
-                          <div class="dropdown">
-                            <button type="button" class="btn p-0 dropdown-toggle hide-arrow" data-bs-toggle="dropdown">
-                              <i class="bx bx-dots-vertical-rounded"></i>
-                            </button>
-                            <div class="dropdown-menu">
-                              <a class="dropdown-item" href="{% url 'viewpdfquote' %}"><i class="bx bx-cctv me-1"></i> Preview</a>
-                              <a class="dropdown-item" href="#"><i class="bx bx-trash me-1"></i> Delete</a>
+                      <div class="modal-body">
+                        <!-- Django Form -->
+                        <form method="POST" action="{% url 'quotes' %}">
+                          {% csrf_token %}
+                          
+                          <!-- Customer and Expiry Date Section -->
+                          <div class="row g-3 mb-4">
+                            <div class="mb-3">
+                              <label for="{{ form.customer.id_for_label }}" class="form-label">Customer</label>
+                              <select name="{{ form.customer.name }}" id="{{ form.customer.id_for_label }}" class="form-select" required>
+                                <option disabled selected>Select Customer</option>
+                                {% for customer in form.customer.field.queryset %}
+                                <option value="{{ customer.id }}">{{ customer.first_name }} {{ customer.last_name }}</option>
+                                {% endfor %}
+                              </select>
+                            </div>
+                            <div class="col mb-0">
+                              <label for="{{ form.expiry_date.id_for_label }}" class="form-label">Expiry Date</label>
+                              <input type="datetime-local" class="form-control" name="{{ form.expiry_date.name }}" id="{{ form.expiry_date.id_for_label }}" required />
                             </div>
                           </div>
-                        </td>
-                      </tr>
-                      {% endfor %}
-                    </tbody>
-                  </table>
+          
+                          <!-- Add Items Section -->
+                          <h5>Add Items</h5>
+                          <div id="items-section">
+                            {{ formset.management_form }} <!-- Add management form -->
+          
+                            {% for item_form in formset %}
+                            <div class="row g-2 item-row">
+                              <!-- Item Dropdown -->
+                              <div class="col mb-3">
+                                <label for="{{ item_form.item.id_for_label }}" class="form-label">Item</label>
+                                <select name="{{ item_form.prefix }}-item" id="{{ item_form.item.id_for_label }}" class="form-select" required>
+                                  <option disabled selected>Select Item</option>
+                                  {% for item in items %}
+                                  <option value="{{ item.id }}">{{ item.name }}</option>
+                                  {% endfor %}
+                                </select>
+                              </div>
+          
+                              <!-- Quantity Input -->
+                              <div class="col mb-3">
+                                <label for="{{ item_form.quantity.id_for_label }}" class="form-label">Quantity</label>
+                                <input type="number" class="form-control" name="{{ item_form.prefix }}-quantity" id="{{ item_form.quantity.id_for_label }}" required />
+                              </div>
+          
+                              <!-- Remove Icon -->
+                              <div class="col-auto d-flex align-items-center justify-content-center">
+                                <i class="menu-icon tf-icons bx bx-minus-circle remove-item" style="cursor: pointer;"></i>
+                              </div>
+                            </div>
+                            {% endfor %}
+                          </div>
+          
+                          <!-- Add Another Item -->
+                          <div class="mt-3">
+                            <i id="add-item" class="menu-icon tf-icons bx bx-plus-circle" style="cursor: pointer;"></i> Add another item
+                          </div>
+          
+                          <!-- Submit Button -->
+                          <div class="row mt-4">
+                            <div class="col mb-3">
+                              <button type="submit" class="btn btn-primary">Add Quote</button>
+                            </div>
+                          </div>
+                        </form>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+          
+                <!-- JavaScript to add/remove formset items dynamically -->
+                <script>
+                  document.getElementById('add-item').addEventListener('click', function() {
+                    const itemsSection = document.getElementById('items-section');
+                    const itemRows = itemsSection.getElementsByClassName('item-row');
+                    const newItemRowIndex = itemRows.length;
+          
+                    const newItemRow = document.createElement('div');
+                    newItemRow.classList.add('row', 'g-2', 'item-row');
+                    newItemRow.innerHTML = `
+                      <div class="col mb-3">
+                        <label for="quotationitem_set-${newItemRowIndex}-item" class="form-label">Item</label>
+                        <select name="quotationitem_set-${newItemRowIndex}-item" id="quotationitem_set-${newItemRowIndex}-item" class="form-select" required>
+                          <option disabled selected>Select Item</option>
+                          {% for item in items %}
+                          <option value="{{ item.id }}">{{ item.name }}</option>
+                          {% endfor %}
+                        </select>
+                      </div>
+                      <div class="col mb-3">
+                        <label for="quotationitem_set-${newItemRowIndex}-quantity" class="form-label">Quantity</label>
+                        <input type="number" class="form-control" name="quotationitem_set-${newItemRowIndex}-quantity" id="quotationitem_set-${newItemRowIndex}-quantity" required />
+                      </div>
+                      <div class="col-auto d-flex align-items-center justify-content-center">
+                        <i class="menu-icon tf-icons bx bx-minus-circle remove-item" style="cursor: pointer;"></i>
+                      </div>
+                    `;
+          
+                    itemsSection.appendChild(newItemRow);
+          
+                    // Update TOTAL_FORMS in the management form
+                    const totalFormsInput = document.querySelector('#id_quotationitem_set-TOTAL_FORMS');
+                    totalFormsInput.value = itemRows.length;
+                  });
+          
+                  // Handle item removal
+                  document.getElementById('items-section').addEventListener('click', function(e) {
+                    if (e.target.classList.contains('remove-item')) {
+                      const itemRow = e.target.closest('.item-row');
+                      const itemRows = document.getElementsByClassName('item-row');
+                      if (itemRow && itemRows.length > 1) { // Ensure at least one item row remains
+                        itemRow.remove();
+          
+                        // Update TOTAL_FORMS in the management form
+                        const totalFormsInput = document.querySelector('#id_quotationitem_set-TOTAL_FORMS');
+                        totalFormsInput.value = itemRows.length;
+                      }
+                    }
+                  });
+                </script>
+          
+                <!-- Quote Entries Table -->
+                <div class="card mt-4">
+                  <div class="table-responsive text-nowrap">
+                    <table class="table">
+                      <thead>
+                        <tr>
+                          <th>Quotation Number</th>
+                          <th>Customer</th>
+                          <th>Date Created</th>
+                          <th>Expiry Date</th>
+                          <th>Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody class="table-border-bottom-0">
+                        {% for quote in quotes %}
+                        <tr>
+                          <td><strong>{{ quote.quotation_number }}</strong></td>
+                          <td>{{ quote.customer.first_name }} {{ quote.customer.last_name }}</td>
+                          <td>{{ quote.date_created }}</td>
+                          <td>{{ quote.expiry_date }}</td>
+                          <td>
+                            <div class="dropdown">
+                              <button type="button" class="btn p-0 dropdown-toggle hide-arrow" data-bs-toggle="dropdown">
+                                <i class="bx bx-dots-vertical-rounded"></i>
+                              </button>
+                              <div class="dropdown-menu">
+                                <a class="dropdown-item" href="{% url 'view_quote_pdf' quote.id %}"><i class="bx bx-cctv me-1"></i> Preview</a>
+                                <a class="dropdown-item" href="#"><i class="bx bx-trash me-1"></i> Delete</a>
+                              </div>
+                            </div>
+                          </td>
+                        </tr>
+                        {% endfor %}
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
               </div>
-              <!--/ Basic Bootstrap Table -->
-             
-              <!--/ Responsive Table -->
             </div>
+          </div>
+          
             <!-- / Content -->
 
             {% endblock %}

@@ -17,7 +17,7 @@
       content="width=device-width, initial-scale=1.0, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0"
     />
 
-    <title>Datos MIS</title>
+    <title>Datos Business</title>
 
     <meta name="description" content="" />
 
@@ -64,8 +64,7 @@
         <aside id="layout-menu" class="layout-menu menu-vertical menu bg-menu-theme">
           <div class="app-brand demo">
             <a href="/" class="app-brand-link">
-              <img src="{% static 'datos/assets/img/logo.png' %}" alt/>
-            <span class="app-brand-text demo menu-text fw-bolder ms-2">Datos</span>
+              <img src="{% static 'datos/assets/img/datosbb.svg' %}" alt/>
           </a>
 
             <a href="javascript:void(0);" class="layout-menu-toggle menu-link text-large ms-auto d-block d-xl-none">
@@ -209,21 +208,21 @@
                 <!-- User -->
                 <li class="nav-item navbar-dropdown dropdown-user dropdown">
                   <a class="nav-link dropdown-toggle hide-arrow" href="javascript:void(0);" data-bs-toggle="dropdown">
-                    <div class="avatar avatar-online">
-                      <img src="{% static 'datos/assets/img/avatars/1.png' %}" alt class="w-px-40 h-auto rounded-circle" />
+                    <div class="avatar avatar-online" 
+                         style="position: relative; width: 35px; height: 33px;">
+                        <i class="bx bx-bell" style="font-size: 32px; line-height: 36px;"></i>
                     </div>
-                  </a>
+                </a>
+                
+                
                   <ul class="dropdown-menu dropdown-menu-end">
                     <li>
                       <a class="dropdown-item" href="#">
                         <div class="d-flex">
                           <div class="flex-shrink-0 me-3">
-                            <div class="avatar avatar-online">
-                              <img src="{% static 'datos/assets/img/avatars/1.png' %}" alt class="w-px-40 h-auto rounded-circle" />
-                            </div>
                           </div>
                           <div class="flex-grow-1">
-                            <span class="fw-semibold d-block">John Doe</span>
+                            <span class="fw-semibold d-block">{{ request.user.first_name }} {{ request.user.last_name }}</span>
                             <small class="text-muted">Admin</small>
                           </div>
                         </div>
