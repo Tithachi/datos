@@ -2,6 +2,9 @@
 
 {% load static %}
 
+{% block title %}Add a new invoice{% endblock %}
+{% block meta %}Datos{% endblock %}
+
 {% block content %}
 
           <!-- Content wrapper -->
@@ -12,35 +15,28 @@
               <div class="container-xxl flex-grow-1 container-p-y">
                 <div class="header-container d-flex justify-content-between align-items-center">
                   <h4 class="fw-bold py-3 mb-4">
-                    <a href="/dashboard" class="text-decoration-none">
-                      <span class="text-muted fw-light">Bills /</span>
+                    <a href="/" class="text-decoration-none">
+                      <span class="text-muted fw-light">Home /</span>
                     </a>
                     Invoices
                   </h4>
                   <div class="button-container d-flex align-items-center">
-                    <!-- Replaced the link with a button to trigger the modal -->
+                    <!-- Replaced the link with a button to trigger the new modal -->
                     <button 
                       class="btn btn-primary mr-2" 
                       data-bs-toggle="modal" 
-                      data-bs-target="#modalToggle">
+                      data-bs-target="#basicModal">
                       <strong>Add Invoice</strong>
                     </button>
                   </div>
                 </div>
               
-                <!-- Modal 1-->
-                <div
-                  class="modal fade"
-                  id="modalToggle"
-                  aria-labelledby="modalToggleLabel"
-                  tabindex="-1"
-                  style="display: none"
-                  aria-hidden="true"
-                >
-                  <div class="modal-dialog modal-dialog-centered">
+                <!-- New Modal -->
+                <div class="modal fade" id="basicModal" tabindex="-1" aria-hidden="true">
+                  <div class="modal-dialog" role="document">
                     <div class="modal-content">
                       <div class="modal-header">
-                        <h5 class="modal-title" id="modalToggleLabel">Add a new invoice</h5>
+                        <h5 class="modal-title" id="exampleModalLabel1">Add New Invoice</h5>
                         <button
                           type="button"
                           class="btn-close"
@@ -48,282 +44,109 @@
                           aria-label="Close"
                         ></button>
                       </div>
-                      <div class="modal-body">Show a second modal and hide this one with the button below.</div>
-                      <div class="modal-footer">
-                        <button
-                          class="btn btn-primary"
-                          data-bs-target="#modalToggle2"
-                          data-bs-toggle="modal"
-                          data-bs-dismiss="modal"
-                        >
-                          Open second modal
-                        </button>
+                      <div class="modal-body">
+                        <!-- Django Form -->
+                        <form method="POST" action="{% url 'invoices' %}" id="invoiceForm">
+                          {% csrf_token %}
+                          <div class="row g-2">
+                              <div class="col mb-0">
+                                <label for="{{ form.quotation.id_for_label }}" class="form-label">Quotation</label>
+                                <div class="col-sm-10">
+                                    <select class="form-control" name="{{ form.quotation.name }}" id="{{ form.quotation.id_for_label }}">
+                                        <option value="">Select a quotation</option> <!-- Optional placeholder -->
+                                        {% for quote in quotes %}
+                                            <option value="{{ quote.id }}">{{ quote.quotation_number }}</option>
+                                        {% empty %}
+                                            <option value="">No quotations available</option>  <!-- Message if no quotes -->
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                                
+                              </div>
+                              <div class="col mb-0">
+                                  <label for="{{ form.due_date.id_for_label }}" class="form-label">Due Date</label>
+                                  <div class="col-sm-10">
+                                      <input type="datetime-local" class="form-control" name="{{ form.due_date.name }}" id="{{ form.due_date.id_for_label }}" placeholder="{{ form.due_date.label }}"/>
+                                  </div>
+                              </div>
+                          </div>
+                          <div class="row">
+                              <div class="col mb-3">
+                                  <label for="{{ form.amount_paid.id_for_label }}" class="form-label">Amount Paid (K)</label>
+                                  <input type="number" step="0.01" class="form-control" name="{{ form.amount_paid.name }}" id="{{ form.amount_paid.id_for_label }}" placeholder="{{ form.amount_paid.label }}"/>
+                              </div>
+                          </div>
+                          <div class="row">
+                              <div class="col mb-3">
+                                  <button type="submit" class="btn btn-primary">Add Invoice</button>
+                              </div>
+                          </div>
+                      </form>
+                      
                       </div>
+                      
+                    </div>
                     </div>
                   </div>
                 </div>
               
-                <!-- Modal 2-->
-                <div
-                  class="modal fade"
-                  id="modalToggle2"
-                  aria-hidden="true"
-                  aria-labelledby="modalToggleLabel2"
-                  tabindex="-1"
-                >
-                  <div class="modal-dialog modal-dialog-centered">
-                    <div class="modal-content">
-                      <div class="modal-header">
-                        <h5 class="modal-title" id="modalToggleLabel2">Modal 2</h5>
-                        <button
-                          type="button"
-                          class="btn-close"
-                          data-bs-dismiss="modal"
-                          aria-label="Close"
-                        ></button>
-                      </div>
-                      <div class="modal-body">Hide this modal and show the first with the button below.</div>
-                      <div class="modal-footer">
-                        <button
-                          class="btn btn-primary"
-                          data-bs-target="#modalToggle"
-                          data-bs-toggle="modal"
-                          data-bs-dismiss="modal"
-                        >
-                          Back to first
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
               
 
               
 
               <!-- Basic Bootstrap Table -->
               <div class="card">
-                <h5 class="card-header">Table Basic</h5>
                 <div class="table-responsive text-nowrap">
                   <table class="table">
                     <thead>
-                      <tr>
-                        <th>Serial  #</th>
-                        <th>Client</th>
-                        <th>Expiry Date</th>
-                        <th>Status</th>
-                        <th>Actions</th>
-                      </tr>
+                        <tr>
+                            <th>Invoice Number</th>
+                            <th>Customer</th>
+                            <th>Total (K)</th>
+                            <th>Amount Paid (K)</th>
+                            <th>Due Date</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
                     </thead>
                     <tbody class="table-border-bottom-0">
-                      <tr>
-                        <td><i class="fab fa-angular fa-lg text-danger me-3"></i> <strong>Angular Project</strong></td>
-                        <td>Albert Cook</td>
-                        <td>
-                          <ul class="list-unstyled users-list m-0 avatar-group d-flex align-items-center">
-                            <li
-                              data-bs-toggle="tooltip"
-                              data-popup="tooltip-custom"
-                              data-bs-placement="top"
-                              class="avatar avatar-xs pull-up"
-                              title="Lilian Fuller"
-                            >
-                              <img src="{% static 'datos/assets/img/avatars/5.png' %}" alt="Avatar" class="rounded-circle" />
-                            </li>
-                            <li
-                              data-bs-toggle="tooltip"
-                              data-popup="tooltip-custom"
-                              data-bs-placement="top"
-                              class="avatar avatar-xs pull-up"
-                              title="Sophia Wilkerson"
-                            >
-                              <img src="{% static 'datos/assets/img/avatars/6.png' %}" alt="Avatar" class="rounded-circle" />
-                            </li>
-                            <li
-                              data-bs-toggle="tooltip"
-                              data-popup="tooltip-custom"
-                              data-bs-placement="top"
-                              class="avatar avatar-xs pull-up"
-                              title="Christina Parker"
-                            >
-                              <img src="{% static 'datos/assets/img/avatars/7.png' %}" alt="Avatar" class="rounded-circle" />
-                            </li>
-                          </ul>
-                        </td>
-                        <td><span class="badge bg-label-primary me-1">Active</span></td>
-                        <td>
-                          <div class="dropdown">
-                            <button type="button" class="btn p-0 dropdown-toggle hide-arrow" data-bs-toggle="dropdown">
-                              <i class="bx bx-dots-vertical-rounded"></i>
-                            </button>
-                            <div class="dropdown-menu">
-                              <a class="dropdown-item" href="javascript:void(0);"
-                                ><i class="bx bx-edit-alt me-1"></i> Edit</a
-                              >
-                              <a class="dropdown-item" href="javascript:void(0);"
-                                ><i class="bx bx-trash me-1"></i> Delete</a
-                              >
-                            </div>
-                          </div>
-                        </td>
-                      </tr>
-                      <tr>
-                        <td><i class="fab fa-react fa-lg text-info me-3"></i> <strong>React Project</strong></td>
-                        <td>Barry Hunter</td>
-                        <td>
-                          <ul class="list-unstyled users-list m-0 avatar-group d-flex align-items-center">
-                            <li
-                              data-bs-toggle="tooltip"
-                              data-popup="tooltip-custom"
-                              data-bs-placement="top"
-                              class="avatar avatar-xs pull-up"
-                              title="Lilian Fuller"
-                            >
-                              <img src="{% static 'datos/assets/img/avatars/5.png' %}" alt="Avatar" class="rounded-circle" />
-                            </li>
-                            <li
-                              data-bs-toggle="tooltip"
-                              data-popup="tooltip-custom"
-                              data-bs-placement="top"
-                              class="avatar avatar-xs pull-up"
-                              title="Sophia Wilkerson"
-                            >
-                              <img src="{% static 'datos/assets/img/avatars/6.png' %}" alt="Avatar" class="rounded-circle" />
-                            </li>
-                            <li
-                              data-bs-toggle="tooltip"
-                              data-popup="tooltip-custom"
-                              data-bs-placement="top"
-                              class="avatar avatar-xs pull-up"
-                              title="Christina Parker"
-                            >
-                              <img src="{% static 'datos/assets/img/avatars/7.png' %}" alt="Avatar" class="rounded-circle" />
-                            </li>
-                          </ul>
-                        </td>
-                        <td><span class="badge bg-label-success me-1">Completed</span></td>
-                        <td>
-                          <div class="dropdown">
-                            <button type="button" class="btn p-0 dropdown-toggle hide-arrow" data-bs-toggle="dropdown">
-                              <i class="bx bx-dots-vertical-rounded"></i>
-                            </button>
-                            <div class="dropdown-menu">
-                              <a class="dropdown-item" href="javascript:void(0);"
-                                ><i class="bx bx-edit-alt me-2"></i> Edit</a
-                              >
-                              <a class="dropdown-item" href="javascript:void(0);"
-                                ><i class="bx bx-trash me-2"></i> Delete</a
-                              >
-                            </div>
-                          </div>
-                        </td>
-                      </tr>
-                      <tr>
-                        <td><i class="fab fa-vuejs fa-lg text-success me-3"></i> <strong>VueJs Project</strong></td>
-                        <td>Trevor Baker</td>
-                        <td>
-                          <ul class="list-unstyled users-list m-0 avatar-group d-flex align-items-center">
-                            <li
-                              data-bs-toggle="tooltip"
-                              data-popup="tooltip-custom"
-                              data-bs-placement="top"
-                              class="avatar avatar-xs pull-up"
-                              title="Lilian Fuller"
-                            >
-                              <img src="{% static 'datos/assets/img/avatars/5.png' %}" alt="Avatar" class="rounded-circle" />
-                            </li>
-                            <li
-                              data-bs-toggle="tooltip"
-                              data-popup="tooltip-custom"
-                              data-bs-placement="top"
-                              class="avatar avatar-xs pull-up"
-                              title="Sophia Wilkerson"
-                            >
-                              <img src="{% static 'datos/assets/img/avatars/6.png' %}" alt="Avatar" class="rounded-circle" />
-                            </li>
-                            <li
-                              data-bs-toggle="tooltip"
-                              data-popup="tooltip-custom"
-                              data-bs-placement="top"
-                              class="avatar avatar-xs pull-up"
-                              title="Christina Parker"
-                            >
-                              <img src="{% static 'datos/assets/img/avatars/7.png' %}" alt="Avatar" class="rounded-circle" />
-                            </li>
-                          </ul>
-                        </td>
-                        <td><span class="badge bg-label-info me-1">Scheduled</span></td>
-                        <td>
-                          <div class="dropdown">
-                            <button type="button" class="btn p-0 dropdown-toggle hide-arrow" data-bs-toggle="dropdown">
-                              <i class="bx bx-dots-vertical-rounded"></i>
-                            </button>
-                            <div class="dropdown-menu">
-                              <a class="dropdown-item" href="javascript:void(0);"
-                                ><i class="bx bx-edit-alt me-2"></i> Edit</a
-                              >
-                              <a class="dropdown-item" href="javascript:void(0);"
-                                ><i class="bx bx-trash me-2"></i> Delete</a
-                              >
-                            </div>
-                          </div>
-                        </td>
-                      </tr>
-                      <tr>
-                        <td>
-                          <i class="fab fa-bootstrap fa-lg text-primary me-3"></i> <strong>Bootstrap Project</strong>
-                        </td>
-                        <td>Jerry Milton</td>
-                        <td>
-                          <ul class="list-unstyled users-list m-0 avatar-group d-flex align-items-center">
-                            <li
-                              data-bs-toggle="tooltip"
-                              data-popup="tooltip-custom"
-                              data-bs-placement="top"
-                              class="avatar avatar-xs pull-up"
-                              title="Lilian Fuller"
-                            >
-                              <img src="{% static 'datos/assets/img/avatars/5.png' %}" alt="Avatar" class="rounded-circle" />
-                            </li>
-                            <li
-                              data-bs-toggle="tooltip"
-                              data-popup="tooltip-custom"
-                              data-bs-placement="top"
-                              class="avatar avatar-xs pull-up"
-                              title="Sophia Wilkerson"
-                            >
-                              <img src="{% static 'datos/assets/img/avatars/6.png' %}" alt="Avatar" class="rounded-circle" />
-                            </li>
-                            <li
-                              data-bs-toggle="tooltip"
-                              data-popup="tooltip-custom"
-                              data-bs-placement="top"
-                              class="avatar avatar-xs pull-up"
-                              title="Christina Parker"
-                            >
-                              <img src="{% static 'datos/assets/img/avatars/7.png' %}" alt="Avatar" class="rounded-circle" />
-                            </li>
-                          </ul>
-                        </td>
-                        <td><span class="badge bg-label-warning me-1">Pending</span></td>
-                        <td>
-                          <div class="dropdown">
-                            <button type="button" class="btn p-0 dropdown-toggle hide-arrow" data-bs-toggle="dropdown">
-                              <i class="bx bx-dots-vertical-rounded"></i>
-                            </button>
-                            <div class="dropdown-menu">
-                              <a class="dropdown-item" href="javascript:void(0);"
-                                ><i class="bx bx-edit-alt me-2"></i> Edit</a
-                              >
-                              <a class="dropdown-item" href="javascript:void(0);"
-                                ><i class="bx bx-trash me-2"></i> Delete</a
-                              >
-                            </div>
-                          </div>
-                        </td>
-                      </tr>
+                        {% for entry in invoice_data %}
+                        <tr>
+                            <td><strong>{{ entry.invoice.invoice_number }}</strong></td>
+                            <td>{{ entry.invoice.quotation.customer.company }}</td>
+                            <td>{{ entry.total|floatformat:2 }}</td>
+                            <td>{{ entry.invoice.amount_paid }}</td>
+                            <td>{{ entry.invoice.due_date }}</td>
+                            <td>
+                                {% if entry.status == 'OVERDUE' %}
+                                    <span class="badge bg-label-danger me-1">OVERDUE</span>
+                                {% elif entry.status == 'PARTIAL' %}
+                                    <span class="badge bg-label-info me-1">PARTIAL</span>
+                                {% else %}
+                                    <span class="badge bg-label-success me-1">PAID</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <div class="dropdown">
+                                    <button type="button" class="btn p-0 dropdown-toggle hide-arrow" data-bs-toggle="dropdown">
+                                        <i class="bx bx-dots-vertical-rounded"></i>
+                                    </button>
+                                    <div class="dropdown-menu">
+                                        <a class="dropdown-item" href="javascript:void(0);">
+                                            <i class="bx bx-edit-alt me-1"></i> Edit
+                                        </a>
+                                        <a class="dropdown-item" href="javascript:void(0);">
+                                            <i class="bx bx-trash me-1"></i> Delete
+                                        </a>
+                                    </div>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
                     </tbody>
-                  </table>
+                </table>
+                
+                
                 </div>
               </div>
               <!--/ Basic Bootstrap Table -->

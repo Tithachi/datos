@@ -41,12 +41,23 @@ class QuotationItem(models.Model):
 
 class Invoice(models.Model):
     quotation = models.OneToOneField(Quotation, on_delete=models.CASCADE)
+    invoice_number = models.CharField(max_length=9, unique=True, blank=True)
     date_created = models.DateTimeField(default=timezone.now)
     due_date = models.DateTimeField()
-    total_amount = models.DecimalField(max_digits=10, decimal_places=2)
+    amount_paid = models.DecimalField(max_digits=10, decimal_places=2)
+    date_updated = models.DateTimeField(default=timezone.now)
+    
+    def save(self, *args, **kwargs):
+        if not self.invoice_number:
+            self.invoice_number = self.generate_invoice_number()
+        super().save(*args, **kwargs)
+
+    def generate_invoice_number(self):
+        random_digits = ''.join([str(random.randint(0, 9)) for _ in range(5)])
+        return f'DTSI{random_digits}'
 
     def __str__(self):
-        return f"Invoice {self.id} for Quotation {self.quotation.id}"
+        return self.invoice_number
 
 class Receipt(models.Model):
     invoice = models.OneToOneField(Invoice, on_delete=models.CASCADE)

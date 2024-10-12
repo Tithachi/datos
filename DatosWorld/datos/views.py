@@ -1,6 +1,6 @@
 from django.shortcuts import render, redirect
 from .models import *
-from .forms import ItemForm, CustomerForm, QuotationItemFormSet, QuotationForm
+from .forms import ItemForm, CustomerForm, QuotationItemFormSet, QuotationForm, InvoiceForm
 from django.shortcuts import render, redirect,get_object_or_404
 from .forms import QuotationForm, QuotationItemFormSet
 from .models import Quotation, Item
@@ -10,6 +10,9 @@ from django.template.loader import get_template
 from django.views import View
 from .pdf_utils import generate_quote
 import pandas as pd
+from decimal import Decimal
+from django.utils import timezone  # For current date and time
+import datetime 
 
 def view_quote_pdf(request, entry_id):
     # Fetch the Quotation entry from the database
@@ -159,7 +162,58 @@ def customers(request):
     return render(request, 'customers.html', context)
 
 def invoices(request):
-    return render(request, 'invoice.html')
+    if request.method == 'POST':
+        form = InvoiceForm(request.POST)
+        if form.is_valid():
+            form.save()
+            return redirect('invoice')  # Redirect after POST to avoid re-submission on refresh
+    else:
+        form = InvoiceForm()
+
+    # Fetch all invoices
+    quotes = Quotation.objects.all()
+    invoices = Invoice.objects.all()
+
+    # Create a list to store invoice data along with total amount for each quotation
+    invoice_data = []
+
+    for invoice in invoices:
+        # Fetch the related quotation items for the invoice's quotation
+        quotation_items = QuotationItem.objects.filter(quotation=invoice.quotation)
+
+        # Calculate the total for the quotation linked to this invoice
+        subtotal = sum(item.item.unit_price * item.quantity for item in quotation_items)
+        tax = subtotal * Decimal('0.16')  # Use Decimal for the tax rate
+        total = subtotal + tax
+
+        # Determine the status based on due_date and amount paid
+        current_date = timezone.now().date()  # Get the current date
+
+        # Convert invoice.due_date to date() if it contains time part
+        due_date = invoice.due_date.date() if isinstance(invoice.due_date, datetime.datetime) else invoice.due_date
+
+        if due_date < current_date and invoice.amount_paid < total:
+            status = 'OVERDUE'
+        elif due_date >= current_date and invoice.amount_paid < total:
+            status = 'PARTIAL'
+        else:
+            status = 'PAID'
+
+        # Add the invoice details along with the total amount and status to the list
+        invoice_data.append({
+            'invoice': invoice,
+            'total': total,  # Add total amount to the dictionary
+            'status': status,  # Add the calculated status
+            "quotes":quotes
+        })
+
+    context = {
+        'form': form,
+        'invoice_data': invoice_data,  # Passing the invoice data with totals and status
+    }
+
+    return render(request, 'invoice.html', context)
+
 
 def reciepts(request):
     return render(request, 'reciepts.html')

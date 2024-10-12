@@ -21,6 +21,7 @@ class QuotationAdmin(admin.ModelAdmin):
     list_filter = ('date_created', 'expiry_date')
     inlines = [QuotationItemInline]
     readonly_fields = ('quotation_number',)
+    search_fields = ('quotation_number','date_created')
 
     def save_model(self, request, obj, form, change):
         # Generate quotation number if it doesn't already exist
@@ -31,8 +32,10 @@ class QuotationAdmin(admin.ModelAdmin):
 # Admin for Invoice
 @admin.register(Invoice)
 class InvoiceAdmin(admin.ModelAdmin):
-    list_display = ('id', 'quotation', 'date_created', 'due_date', 'total_amount')
+    list_display = ('quotation', 'invoice_number','date_created', 'due_date', 'date_updated', 'amount_paid')
     list_filter = ('date_created', 'due_date')
+    search_fields = ('invoice_number',)
+    readonly_fields = ('invoice_number', 'date_created', 'date_updated')
 
 # Admin for Receipt
 @admin.register(Receipt)

@@ -45,3 +45,8 @@ QuotationItemFormSet = inlineformset_factory(
     extra=1,
     can_delete=True
 )
+
+class InvoiceForm(forms.ModelForm):
+    class Meta:
+        model = Invoice
+        fields = ['quotation','due_date', 'amount_paid']
