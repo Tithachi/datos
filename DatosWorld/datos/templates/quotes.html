@@ -47,7 +47,7 @@
                               <select name="{{ form.customer.name }}" id="{{ form.customer.id_for_label }}" class="form-select" required>
                                 <option disabled selected>Select Customer</option>
                                 {% for customer in form.customer.field.queryset %}
-                                <option value="{{ customer.id }}">{{ customer.first_name }} {{ customer.last_name }}</option>
+                                <option value="{{ customer.id }}">{{ customer.first_name }} {{ customer.last_name }} - {{ customer.company }}</option>
                                 {% endfor %}
                               </select>
                             </div>

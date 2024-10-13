@@ -50,3 +50,8 @@ class InvoiceForm(forms.ModelForm):
     class Meta:
         model = Invoice
         fields = ['quotation','due_date', 'amount_paid']
+        
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Set the queryset for the quotation field
+        self.fields['quotation'].queryset = Quotation.objects.all()  # This ensures you fetch all quotations

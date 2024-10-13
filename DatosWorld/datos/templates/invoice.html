@@ -48,34 +48,37 @@
                         <!-- Django Form -->
                         <form method="POST" action="{% url 'invoices' %}" id="invoiceForm">
                           {% csrf_token %}
-                          <div class="row g-2">
-                              <div class="col mb-0">
-                                <label for="{{ form.quotation.id_for_label }}" class="form-label">Quotation</label>
+                          <div class="row g-3"> <!-- Increased the gutter space -->
+                            <div class="col mb-3">
+                              <div class="col-sm-10">
+                                  <label for="{{ form.quotation.id_for_label }}" class="form-label">Quotation</label>
+                                  <select name="{{ form.quotation.name }}" id="{{ form.quotation.id_for_label }}" class="form-select" required>
+                                      <option disabled selected>Select Quotation</option>
+                                      {% for item in quotation_data %}
+                                          <option value="{{ item.quotation.id }}">
+                                              <strong>{{ item.quotation.quotation_number }}</strong>, {{ item.quotation.customer.company }} - Total: K{{ item.total|floatformat:2 }}
+                                          </option>
+                                      {% endfor %}
+                                  </select>
+                              </div>
+                          </div>
+                          
+                        
+                            <div class="col mb-3"> <!-- Added mb-3 for more space -->
+                                <label for="{{ form.due_date.id_for_label }}" class="form-label">Due Date</label>
                                 <div class="col-sm-10">
-                                    <select class="form-control" name="{{ form.quotation.name }}" id="{{ form.quotation.id_for_label }}">
-                                        <option value="">Select a quotation</option> <!-- Optional placeholder -->
-                                        {% for quote in quotes %}
-                                            <option value="{{ quote.id }}">{{ quote.quotation_number }}</option>
-                                        {% empty %}
-                                            <option value="">No quotations available</option>  <!-- Message if no quotes -->
-                                        {% endfor %}
-                                    </select>
+                                    <input type="datetime-local" class="form-control" name="{{ form.due_date.name }}" id="{{ form.due_date.id_for_label }}" placeholder="{{ form.due_date.label }}"/>
                                 </div>
-                                
-                              </div>
-                              <div class="col mb-0">
-                                  <label for="{{ form.due_date.id_for_label }}" class="form-label">Due Date</label>
-                                  <div class="col-sm-10">
-                                      <input type="datetime-local" class="form-control" name="{{ form.due_date.name }}" id="{{ form.due_date.id_for_label }}" placeholder="{{ form.due_date.label }}"/>
-                                  </div>
-                              </div>
-                          </div>
-                          <div class="row">
-                              <div class="col mb-3">
-                                  <label for="{{ form.amount_paid.id_for_label }}" class="form-label">Amount Paid (K)</label>
-                                  <input type="number" step="0.01" class="form-control" name="{{ form.amount_paid.name }}" id="{{ form.amount_paid.id_for_label }}" placeholder="{{ form.amount_paid.label }}"/>
-                              </div>
-                          </div>
+                            </div>
+                        </div>
+                        
+                        <div class="row mb-3"> <!-- Added mb-3 for spacing -->
+                            <div class="col mb-3"> <!-- Added mb-3 for more space -->
+                                <label for="{{ form.amount_paid.id_for_label }}" class="form-label">Amount Paid (K)</label>
+                                <input type="number" step="0.01" class="form-control" name="{{ form.amount_paid.name }}" id="{{ form.amount_paid.id_for_label }}" placeholder="{{ form.amount_paid.label }}"/>
+                            </div>
+                        </div>
+                        
                           <div class="row">
                               <div class="col mb-3">
                                   <button type="submit" class="btn btn-primary">Add Invoice</button>
@@ -103,7 +106,8 @@
                             <th>Invoice Number</th>
                             <th>Customer</th>
                             <th>Total (K)</th>
-                            <th>Amount Paid (K)</th>
+                            <th>Paid (K)</th>
+                            <th>Balance (K)</th>
                             <th>Due Date</th>
                             <th>Status</th>
                             <th>Actions</th>
@@ -116,30 +120,31 @@
                             <td>{{ entry.invoice.quotation.customer.company }}</td>
                             <td>{{ entry.total|floatformat:2 }}</td>
                             <td>{{ entry.invoice.amount_paid }}</td>
-                            <td>{{ entry.invoice.due_date }}</td>
+                            <td>{{ entry.balance|floatformat:2 }}</td>
+                            <td>{{ entry.invoice.due_date|date:"SHORT_DATE_FORMAT" }}</td>
                             <td>
                                 {% if entry.status == 'OVERDUE' %}
                                     <span class="badge bg-label-danger me-1">OVERDUE</span>
                                 {% elif entry.status == 'PARTIAL' %}
                                     <span class="badge bg-label-info me-1">PARTIAL</span>
+                                {% elif entry.status == 'NOT PAID' %}
+                                    <span class="badge bg-label-warning me-1">NOT PAID</span> 
                                 {% else %}
                                     <span class="badge bg-label-success me-1">PAID</span>
                                 {% endif %}
                             </td>
                             <td>
-                                <div class="dropdown">
-                                    <button type="button" class="btn p-0 dropdown-toggle hide-arrow" data-bs-toggle="dropdown">
-                                        <i class="bx bx-dots-vertical-rounded"></i>
-                                    </button>
-                                    <div class="dropdown-menu">
-                                        <a class="dropdown-item" href="javascript:void(0);">
-                                            <i class="bx bx-edit-alt me-1"></i> Edit
-                                        </a>
-                                        <a class="dropdown-item" href="javascript:void(0);">
-                                            <i class="bx bx-trash me-1"></i> Delete
-                                        </a>
-                                    </div>
+                              <div class="dropdown">
+                                <button type="button" class="btn p-0 dropdown-toggle hide-arrow" data-bs-toggle="dropdown">
+                                  <i class="bx bx-dots-vertical-rounded"></i>
+                                </button>
+                                <div class="dropdown-menu">
+                                  <a class="dropdown-item" href="#"><i class="bx bx-cctv me-1"></i> Preview</a>
+                                  <a class="dropdown-item" href="#"><i class="bx bx-download me-1"></i> Download</a>
+                                  <a class="dropdown-item" href="#"><i class="bx bx-mail-send me-1"></i> Send</a>
+                                  <a class="dropdown-item" href="#"><i class="bx bx-trash me-1"></i> Delete</a>
                                 </div>
+                              </div>
                             </td>
                         </tr>
                         {% endfor %}

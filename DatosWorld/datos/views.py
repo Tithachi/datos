@@ -26,12 +26,14 @@ def view_quote_pdf(request, entry_id):
     for q_item in quotation_items:
         item = q_item.item  # Assuming 'item' is linked to another model with 'description' and 'unit_price' fields
         item_data = {
-            "description": f"{item.name}, {item.description}",
+            "name": f"{item.name}",
+            "description": f"{item.description}",
             "rate": f"{item.unit_price:.2f}",
             "qty": str(q_item.quantity),
-            "tax": "20.00",  # Example tax value
             "discount": "5.00",  # Example discount value
             "amount": f"{(item.unit_price * q_item.quantity):.2f}",
+            "tax": f"{(item.unit_price * q_item.quantity * Decimal(0.16)):.2f}",
+
         }
         items.append(item_data)
     
@@ -55,8 +57,8 @@ def view_quote_pdf(request, entry_id):
         'address': "11586 Teagles Rd, Makeni, Lusaka",
         'email': "info@datoscw.com",
         'phone': "+260 96 4394236",
-        'payment_info': "Airtel: +260 97 5875598",
-        'notes': "Changing Worlds"
+        'payment_info': "MTN Money: +260 96 4394236",
+        'notes': "datos coming soon..."
     }
 
     # Client details (from Quotation model's 'customer' foreign key)
@@ -98,7 +100,63 @@ def view_quote_pdf(request, entry_id):
 
 # Create your views here.
 def home(request):
-    return render(request, 'home.html')
+    # Fetch all invoices
+    invoices = Invoice.objects.all()
+
+    # Fetch all quotations
+    quotations = Quotation.objects.all()
+
+    # Calculate total for each quotation and store it
+    quotation_data = []
+    for quotation in quotations:
+        # Fetch the related quotation items for each quotation
+        quotation_items = QuotationItem.objects.filter(quotation=quotation)
+
+        # Calculate the total for the quotation
+        subtotal = sum(item.item.unit_price * item.quantity for item in quotation_items)
+        tax = subtotal * Decimal('0.16')  # Assuming a 16% tax rate
+        total = subtotal + tax
+
+        # Store the quotation data with the total
+        quotation_data.append({
+            'quotation': quotation,
+            'total': total
+        })
+
+    # Create a list to store invoice data along with the total amount for each quotation
+    invoice_data = []
+    total_revenue = Decimal('0.00')  # Initialize total revenue to zero
+    for invoice in invoices:
+        # Fetch the related quotation items for the invoice's quotation
+        quotation_items = QuotationItem.objects.filter(quotation=invoice.quotation)
+
+        # Calculate the total for the quotation linked to this invoice
+        subtotal = sum(item.item.unit_price * item.quantity for item in quotation_items)
+        tax = subtotal * Decimal('0.16')  # Use Decimal for the tax rate
+        total = subtotal + tax
+
+        # Accumulate the total for revenue
+        total_revenue += total
+        
+        profit = total_revenue * Decimal('0.40')
+        expenses = total_revenue * Decimal('0.60')
+
+        # Store invoice data
+        invoice_data.append({
+            'invoice': invoice,
+            'total': total,  # Include total for this invoice
+        })
+
+    # Prepare context to send to the template
+    context = {
+        'invoice_data': invoice_data,
+        'quotation_data': quotation_data,
+        'total_revenue': total_revenue,
+        'profit': profit,
+        'expenses': expenses,
+    }
+
+    return render(request, 'home.html', context)
 
 
 
@@ -161,22 +219,44 @@ def customers(request):
     }
     return render(request, 'customers.html', context)
 
+
+from decimal import Decimal
+from django.utils import timezone
+
 def invoices(request):
     if request.method == 'POST':
         form = InvoiceForm(request.POST)
         if form.is_valid():
             form.save()
-            return redirect('invoice')  # Redirect after POST to avoid re-submission on refresh
+            return redirect('invoices')  # Redirect after POST to avoid re-submission on refresh
     else:
         form = InvoiceForm()
 
     # Fetch all invoices
-    quotes = Quotation.objects.all()
     invoices = Invoice.objects.all()
+    
+    # Fetch all quotations
+    quotations = Quotation.objects.all()
 
-    # Create a list to store invoice data along with total amount for each quotation
+    # Calculate total for each quotation and store it
+    quotation_data = []
+    for quotation in quotations:
+        # Fetch the related quotation items for each quotation
+        quotation_items = QuotationItem.objects.filter(quotation=quotation)
+
+        # Calculate the total for the quotation
+        subtotal = sum(item.item.unit_price * item.quantity for item in quotation_items)
+        tax = subtotal * Decimal('0.16')  # Assuming a 16% tax rate
+        total = subtotal + tax
+
+        # Store the quotation data with the total
+        quotation_data.append({
+            'quotation': quotation,
+            'total': total
+        })
+
+    # Create a list to store invoice data along with the total amount for each quotation
     invoice_data = []
-
     for invoice in invoices:
         # Fetch the related quotation items for the invoice's quotation
         quotation_items = QuotationItem.objects.filter(quotation=invoice.quotation)
@@ -185,6 +265,8 @@ def invoices(request):
         subtotal = sum(item.item.unit_price * item.quantity for item in quotation_items)
         tax = subtotal * Decimal('0.16')  # Use Decimal for the tax rate
         total = subtotal + tax
+        balance = total - invoice.amount_paid
+        
 
         # Determine the status based on due_date and amount paid
         current_date = timezone.now().date()  # Get the current date
@@ -192,7 +274,9 @@ def invoices(request):
         # Convert invoice.due_date to date() if it contains time part
         due_date = invoice.due_date.date() if isinstance(invoice.due_date, datetime.datetime) else invoice.due_date
 
-        if due_date < current_date and invoice.amount_paid < total:
+        if invoice.amount_paid == 0:
+            status = 'NOT PAID'
+        elif due_date < current_date and invoice.amount_paid < total:
             status = 'OVERDUE'
         elif due_date >= current_date and invoice.amount_paid < total:
             status = 'PARTIAL'
@@ -203,16 +287,18 @@ def invoices(request):
         invoice_data.append({
             'invoice': invoice,
             'total': total,  # Add total amount to the dictionary
-            'status': status,  # Add the calculated status
-            "quotes":quotes
+            'status': status,
+            'balance': balance,# Add the calculated status
         })
 
     context = {
         'form': form,
         'invoice_data': invoice_data,  # Passing the invoice data with totals and status
+        'quotation_data': quotation_data  # Pass the calculated quotation totals
     }
 
     return render(request, 'invoice.html', context)
+
 
 
 def reciepts(request):

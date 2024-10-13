@@ -5883,6 +5883,10 @@ input:-internal-autofill-selected {
   border: 3px solid #c6f1af !important;
 }
 
+.border-label-purple {
+  border: 3px solid #ea71ff !important;
+}
+
 .border-light-success {
   border: 3px solid rgba(113, 221, 55, 0.08);
 }

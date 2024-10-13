@@ -15,13 +15,12 @@
                     <div class="d-flex align-items-end row">
                       <div class="col-sm-7">
                         <div class="card-body">
-                          <h5 class="card-title text-primary">Hi {{ request.user.first_name }},</h5>
+                          <h5 class="card-title text-primary">Hi {{ request.user.first_name }} {{ request.user.last_name }},</h5>
                           <p class="mb-4">
-                            You have <span class="fw-bold">72</span> bills pending today. Check your notifications.
-                            your profile.
+                            Welcome to <span class="fw-bold">Datos Business</span>
                           </p>
 
-                          <a href="javascript:;" class="btn btn-sm btn-outline-primary">View Bills</a>
+                          <a href="javascript:;" class="btn btn-sm btn-outline-primary">Manage Business</a>
                         </div>
                       </div>
                       <div class="col-sm-5 text-center text-sm-left">
@@ -39,4 +38,68 @@
                   </div>
                 </div>
               </div>
+              <div class="row">
+                <!-- Revenue Card: Takes full width on smaller screens -->
+                <div class="col-12 col-md-6 mb-4">
+                  <div class="card equal-height">
+                    <div class="card-body">
+                      <div class="d-flex justify-content-between flex-sm-row flex-column gap-3">
+                        <div class="d-flex flex-sm-column flex-row align-items-start justify-content-between">
+                          <div class="card-title">
+                            <h5 class="text-nowrap mb-2">Revenue</h5>
+                            <span class="badge bg-label-info rounded-pill">This Week</span>
+                          </div>
+                          <div class="mt-sm-auto">
+                            <small class="text-success text-nowrap fw-semibold"><i class="bx bx-chevron-up"></i> 68.2%</small>
+                            <h3 class="mb-0">K{{ total_revenue|floatformat:0 }}</h3>
+                          </div>
+                        </div>
+                        <div id="profileReportChart"></div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              
+               
+              
+                <div class="col-12 col-md-3 mb-4">
+                  <div class="card equal-height">
+                    <div class="card-body">
+                      <div class="d-flex justify-content-between flex-sm-row flex-column gap-3">
+                        <div class="d-flex flex-sm-column flex-row align-items-start justify-content-between">
+                          <div class="card-title">
+                            <h5 class="text-nowrap mb-2">Profit</h5>
+                            <span class="badge bg-label-success rounded-pill">This Week</span>
+                          </div>
+                          <div class="mt-sm-auto">
+                            <small class="text-danger text-nowrap fw-semibold"><i class="bx bx-chevron-down"></i> 2.2%</small>
+                            <h3 class="mb-0">K{{ profit|floatformat:0 }}</h3>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              
+                <div class="col-12 col-md-3 mb-4">
+                  <div class="card equal-height">
+                    <div class="card-body">
+                      <div class="d-flex justify-content-between flex-sm-row flex-column gap-3">
+                        <div class="d-flex flex-sm-column flex-row align-items-start justify-content-between">
+                          <div class="card-title">
+                            <h5 class="text-nowrap mb-2">Expenses</h5>
+                            <span class="badge bg-label-danger rounded-pill">This Week</span>
+                          </div>
+                          <div class="mt-sm-auto">
+                            <small class="text-success text-nowrap fw-semibold"><i class="bx bx-chevron-up"></i> 5.2%</small>
+                            <h3 class="mb-0">K{{ expenses|floatformat:0 }}</h3>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              
               {% endblock %}

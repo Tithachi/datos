@@ -208,6 +208,17 @@ textarea {
   /* 3 */
 }
 
+.equal-height {
+  display: flex;
+  flex-direction: column;
+  height: 100%; /* This will make all cards the same height */
+}
+
+.card-body {
+  flex-grow: 1; /* This allows the card body to take up remaining space */
+}
+
+
 /*
 Remove the inheritance of text transform in Edge and Firefox.
 */
