@@ -212,6 +212,10 @@ def home(request):
         percentage_change = 100.0  # Significant increase if no revenue yesterday
     else:
         percentage_change = 0.0  # No revenue for both days
+        
+    # Ensure percentage change is an absolute value
+    if percentage_change < 0:
+        percentage_change = abs(percentage_change)
 
     # Determine change status
     if today_total > yesterday_total:
