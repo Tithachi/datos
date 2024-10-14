@@ -344,6 +344,9 @@
 
     <!-- Core JS -->
     <!-- build:js assets/vendor/js/core.js -->
+     <!-- dashboard.html -->
+
+
     <script src="{% static 'datos/assets/vendor/libs/jquery/jquery.js' %}"></script>
     <script src="{% static 'datos/assets/vendor/libs/popper/popper.js' %}"></script>
     <script src="{% static 'datos/assets/vendor/js/bootstrap.js' %}"></script>
@@ -359,6 +362,13 @@
     <script src="{% static 'datos/assets/js/main.js' %}"></script>
 
     <!-- Page JS -->
+    {% comment %} <script src="{% static 'datos/assets/js/dashboards-analytics.js' %}"></script> {% endcomment %}
+    <!-- Passing profit_data from Django to JavaScript -->
+    <script type="text/javascript">
+      var profitData = {{ profit_data|safe }};  <!-- Pass profit_data safely to JS -->
+    </script>
+
+    <!-- Include your JavaScript file -->
     <script src="{% static 'datos/assets/js/dashboards-analytics.js' %}"></script>
 
     <!-- Place this tag in your head or just before your close body tag. -->

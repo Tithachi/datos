@@ -11,6 +11,7 @@ urlpatterns = [
     path('suppliers/', views.suppliers, name='suppliers'),
     path('items/', views.items, name='items'),
     path('view_quote_pdf/<int:entry_id>/', views.view_quote_pdf, name='view_quote_pdf'),
+    path('get-revenue-data/', views.get_revenue_data, name='get_revenue_data'),
     # path('deleteexpense/<str:pk>/', views.deleteexpense, name='deleteexpense'),
     # path('listincome/', views.listincome, name='listincome'),
     # path('addincome/', views.addincome, name='addincome'),

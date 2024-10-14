@@ -13,6 +13,46 @@ import pandas as pd
 from decimal import Decimal
 from django.utils import timezone  # For current date and time
 import datetime 
+from datetime import timedelta
+from django.http import JsonResponse
+from datetime import datetime, timedelta
+from django.db.models import F, Sum, FloatField
+from django.db.models.functions import Coalesce
+
+
+def get_revenue_data(request):
+    # Get the current date
+    today = datetime.now()
+
+    # Calculate the last 7 days' totals
+    revenue_data = []
+    for i in range(7):
+        day = today - timedelta(days=i)
+        day_start = day.replace(hour=0, minute=0, second=0)
+        day_end = day.replace(hour=23, minute=59, second=59)
+
+        # Fetch invoices for the day
+        invoices = Invoice.objects.filter(date_created__range=[day_start, day_end])
+        daily_total = Decimal('0.00')
+
+        # Loop through invoices and calculate the total
+        for invoice in invoices:
+            quotation_items = QuotationItem.objects.filter(quotation=invoice.quotation)
+            subtotal = sum(item.item.unit_price * item.quantity for item in quotation_items)
+            tax = subtotal * Decimal('0.16')  # 16% tax
+            total = subtotal + tax
+            daily_total += total
+
+        revenue_data.append({
+            'day': day.strftime('%Y-%m-%d'),
+            'total': float(daily_total)
+        })
+        
+    # Reverse the data so the latest date is on the right
+    revenue_data.reverse()
+
+    return JsonResponse(revenue_data, safe=False)
+
 
 def view_quote_pdf(request, entry_id):
     # Fetch the Quotation entry from the database
@@ -98,7 +138,8 @@ def view_quote_pdf(request, entry_id):
     # Return the PDF as a response for viewing in the browser
     return HttpResponse(buffer, content_type='application/pdf')
 
-# Create your views here.
+
+
 def home(request):
     # Fetch all invoices
     invoices = Invoice.objects.all()
@@ -137,7 +178,8 @@ def home(request):
 
         # Accumulate the total for revenue
         total_revenue += total
-        
+
+        # Calculate profit and expenses
         profit = total_revenue * Decimal('0.40')
         expenses = total_revenue * Decimal('0.60')
 
@@ -147,6 +189,38 @@ def home(request):
             'total': total,  # Include total for this invoice
         })
 
+    # Calculate today's and yesterday's total revenue
+    today = timezone.now().date()
+    yesterday = today - timedelta(days=1)
+
+    # Get today's total revenue
+    today_total = sum(
+        item.item.unit_price * item.quantity for item in
+        QuotationItem.objects.filter(quotation__invoice__date_created__date=today)
+    )
+
+    # Get yesterday's total revenue
+    yesterday_total = sum(
+        item.item.unit_price * item.quantity for item in
+        QuotationItem.objects.filter(quotation__invoice__date_created__date=yesterday)
+    )
+
+    # Calculate percentage change
+    if yesterday_total > 0:
+        percentage_change = ((today_total - yesterday_total) / yesterday_total) * 100
+    elif today_total > 0:
+        percentage_change = 100.0  # Significant increase if no revenue yesterday
+    else:
+        percentage_change = 0.0  # No revenue for both days
+
+    # Determine change status
+    if today_total > yesterday_total:
+        change_status = 'increase'
+    elif today_total < yesterday_total:
+        change_status = 'decrease'
+    else:
+        change_status = 'flat'
+
     # Prepare context to send to the template
     context = {
         'invoice_data': invoice_data,
@@ -154,9 +228,13 @@ def home(request):
         'total_revenue': total_revenue,
         'profit': profit,
         'expenses': expenses,
+        'percentage_change': round(percentage_change, 2),  # Rounded for display
+        'change_status': change_status,
     }
 
     return render(request, 'home.html', context)
+
+
 
 
 
@@ -272,7 +350,7 @@ def invoices(request):
         current_date = timezone.now().date()  # Get the current date
 
         # Convert invoice.due_date to date() if it contains time part
-        due_date = invoice.due_date.date() if isinstance(invoice.due_date, datetime.datetime) else invoice.due_date
+        due_date = invoice.due_date.date() if isinstance(invoice.due_date, datetime) else invoice.due_date
 
         if invoice.amount_paid == 0:
             status = 'NOT PAID'
@@ -336,6 +414,40 @@ def addcustomer(request):
 
     context = {'form': form, 'customer': customer}
     return render(request, 'customers.html', context)
+
+
+def dashboard_view(request):
+    today = timezone.now().date()  # Get today's date
+    date_range = [today - timedelta(days=i) for i in range(7)]  # Create a list for the last 7 days
+    
+    # List to store total revenue for each of the last 7 days
+    daily_totals = []
+
+    for day in date_range:
+        # Filter invoices created on the current day
+        invoices = Invoice.objects.filter(date_created__date=day)
+        total_revenue = Decimal('0.00')  # Initialize total revenue for the current day
+
+        # Calculate total revenue for each invoice on that day
+        for invoice in invoices:
+            quotation_items = QuotationItem.objects.filter(quotation=invoice.quotation)
+            
+            # Calculate subtotal and add tax for each invoice
+            subtotal = sum(item.item.unit_price * item.quantity for item in quotation_items)
+            tax = subtotal * Decimal('0.16')
+            total = subtotal + tax
+            
+            # Add to the day's total revenue
+            total_revenue += total
+
+        # Append the day's total revenue to the list
+        daily_totals.append(float(total_revenue))  # Convert Decimal to float
+
+    # Reverse to make the most recent day appear last
+    daily_totals.reverse()
+
+    # Pass the daily totals to the template as 'profit_data'
+    return render(request, 'home.html', {'profit_data': daily_totals})
 
 
 

@@ -355,68 +355,95 @@
     growthChart.render();
   }
 
-  // Profit Report Line Chart
-  // --------------------------------------------------------------------
-  const profileReportChartEl = document.querySelector('#profileReportChart'),
-    profileReportChartConfig = {
-      chart: {
-        height: 80,
-        // width: 175,
-        type: 'line',
-        toolbar: {
+// Profit Report Line Chart
+// --------------------------------------------------------------------
+const profileReportChartEl = document.querySelector('#profileReportChart');
+
+if (typeof profileReportChartEl !== undefined && profileReportChartEl !== null) {
+  fetch('/get-revenue-data/')
+    .then(response => response.json())
+    .then(data => {
+      const chartData = data.map(item => item.total); // Extract totals
+      const chartLabels = data.map(item => item.day); // Extract dates
+      
+      // Function to format totals with "K" and commas
+      const formatTotal = (value) => {
+        return 'K' + value.toLocaleString('en-US', {
+          minimumFractionDigits: 0,  // No decimal places
+          maximumFractionDigits: 0
+        });
+      };
+
+      const profileReportChartConfig = {
+        chart: {
+          height: 80,
+          type: 'line',
+          toolbar: {
+            show: false
+          },
+          dropShadow: {
+            enabled: true,
+            top: 10,
+            left: 5,
+            blur: 3,
+            color: config.colors.warning,
+            opacity: 0.15
+          },
+          sparkline: {
+            enabled: true
+          }
+        },
+        grid: {
+          show: false,
+          padding: {
+            right: 8
+          }
+        },
+        colors: [config.colors.warning],
+        dataLabels: {
+          enabled: false
+        },
+        stroke: {
+          width: 5,
+          curve: 'smooth'
+        },
+        series: [
+          {
+            name: 'Revenue',  // Set the label to "Revenue"
+            data: chartData   // Use live data here
+          }
+        ],
+        xaxis: {
+          categories: chartLabels,  // Use the dates for x-axis
+          show: true,
+          lines: {
+            show: false
+          },
+          labels: {
+            show: false
+          },
+          axisBorder: {
+            show: false
+          }
+        },
+        yaxis: {
           show: false
         },
-        dropShadow: {
-          enabled: true,
-          top: 10,
-          left: 5,
-          blur: 3,
-          color: config.colors.warning,
-          opacity: 0.15
-        },
-        sparkline: {
-          enabled: true
+        tooltip: {
+          y: {
+            formatter: function(value) {
+              return formatTotal(value); // Format the total in the tooltip
+            }
+          }
         }
-      },
-      grid: {
-        show: false,
-        padding: {
-          right: 8
-        }
-      },
-      colors: [config.colors.warning],
-      dataLabels: {
-        enabled: false
-      },
-      stroke: {
-        width: 5,
-        curve: 'smooth'
-      },
-      series: [
-        {
-          data: [110, 270, 145, 245, 205, 285]
-        }
-      ],
-      xaxis: {
-        show: false,
-        lines: {
-          show: false
-        },
-        labels: {
-          show: false
-        },
-        axisBorder: {
-          show: false
-        }
-      },
-      yaxis: {
-        show: false
-      }
-    };
-  if (typeof profileReportChartEl !== undefined && profileReportChartEl !== null) {
-    const profileReportChart = new ApexCharts(profileReportChartEl, profileReportChartConfig);
-    profileReportChart.render();
-  }
+      };
+
+      const profileReportChart = new ApexCharts(profileReportChartEl, profileReportChartConfig);
+      profileReportChart.render();
+    })
+    .catch(error => console.error('Error fetching revenue data:', error));
+}
+
 
   // Order Statistics Chart
   // --------------------------------------------------------------------
