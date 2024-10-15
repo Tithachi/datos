@@ -20,7 +20,7 @@ class Customer(models.Model):
 class Supplier(models.Model):
     supplier_id = models.AutoField(primary_key=True)
     company_name = models.CharField(max_length=150)
-    contact_name = models.CharField(max_length=150)
+    contact_name = models.CharField(max_length=150,null=True,blank=True)
     phone = models.CharField(max_length=13)
     email = models.EmailField(null=True,blank=True)
     address = models.TextField()
@@ -94,7 +94,7 @@ class Item(models.Model):
     def __str__(self):
         return self.name
     
-CATEGORY_TYPE = [
+CATEGORY_TYPE1 = [
 ('Bank', 'Bank'),
 ('Accounts Recievable', 'Accounts Recievable'),
 ('Other Current Assets', 'Other Current Assets'),
@@ -109,7 +109,7 @@ CATEGORY_TYPE = [
 ('Other Income', 'Other Income'),
 ]    
 class Category(models.Model):
-  category_type = models.CharField(max_length=100,blank=True,null=True, choices=CATEGORY_TYPE)
+  category_type = models.CharField(max_length=100,blank=True,null=True, choices=CATEGORY_TYPE1)
   category_name = models.CharField(max_length=100,blank=True,null=True)
   description = models.TextField(blank=True,null=True)
 
@@ -134,6 +134,18 @@ PAYMENT_METHOD = [
 ]
 
 
+CATEGORY_TYPE = [
+    ('Bank Charge', 'Bank Charge'),
+    ('Current Liabilities', 'Current Liabilities'),
+    ('Long-Term Liabilities', 'Long-Term Liabilities'),
+    ('Cost of Goods Sold', 'Cost of Goods Sold'),
+    ('Operating Expenses', 'Operating Expenses'),
+    ('Administrative Expenses', 'Administrative Expenses'),
+    ('Marketing Expenses', 'Marketing Expenses'),
+    ('Depreciation', 'Depreciation'),
+    ('Miscellaneous Expenses', 'Miscellaneous Expenses'),
+]
+
 class Expense(models.Model):
     # receipt_photo = models.ImageField(null=True,blank=True, upload_to="images/")
     expense_id = models.AutoField(primary_key=True)
@@ -144,6 +156,8 @@ class Expense(models.Model):
     date = models.DateField(null=True,blank=True)
     amount = models.DecimalField(max_digits=12,decimal_places=2,null=True,blank=True)
     payment_method = models.CharField(max_length=30, choices=PAYMENT_METHOD,null=True,blank=True)
+    date_created = models.DateTimeField(default=timezone.now)
+    
     
 
     class Meta:

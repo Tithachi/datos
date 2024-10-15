@@ -9,6 +9,7 @@ urlpatterns = [
     path('invoices/', views.invoices, name='invoices'),
     path('reciepts/', views.reciepts, name='reciepts'),
     path('suppliers/', views.suppliers, name='suppliers'),
+    path('expenses/', views.expenses, name='expenses'),
     path('items/', views.items, name='items'),
     path('view_quote_pdf/<int:entry_id>/', views.view_quote_pdf, name='view_quote_pdf'),
     path('get-revenue-data/', views.get_revenue_data, name='get_revenue_data'),

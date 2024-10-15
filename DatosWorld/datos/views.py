@@ -1,6 +1,6 @@
 from django.shortcuts import render, redirect
 from .models import *
-from .forms import ItemForm, CustomerForm, QuotationItemFormSet, QuotationForm, InvoiceForm
+from .forms import ItemForm, CustomerForm, QuotationItemFormSet, QuotationForm, InvoiceForm, ExpenseForm, SupplierForm
 from django.shortcuts import render, redirect,get_object_or_404
 from .forms import QuotationForm, QuotationItemFormSet
 from .models import Quotation, Item
@@ -452,6 +452,27 @@ def dashboard_view(request):
 
     # Pass the daily totals to the template as 'profit_data'
     return render(request, 'home.html', {'profit_data': daily_totals})
+
+def expenses(request):
+    if request.method == 'POST':
+        form = ExpenseForm(request.POST)
+        if form.is_valid():
+            form.save()  # Save the expense to the database
+            return redirect('success_url')  # Redirect to a success page or back to the expense form
+
+    else:
+        form = ExpenseForm()  # Create a new form instance for GET requests
+
+    # Fetch suppliers for the company name dropdown (if applicable)
+    supplier_data = Supplier.objects.all()  # Get all suppliers
+    context = {
+        'form': form,
+        'supplier_data': supplier_data,
+        'CATEGORY_TYPE': CATEGORY_TYPE,  # Pass CATEGORY_TYPE to the template
+        'PAYMENT_METHOD': PAYMENT_METHOD,  # Pass PAYMENT_METHOD to the template
+    }
+
+    return render(request, 'expenses.html', context)
 
 
 

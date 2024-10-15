@@ -55,3 +55,15 @@ class InvoiceForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         # Set the queryset for the quotation field
         self.fields['quotation'].queryset = Quotation.objects.all()  # This ensures you fetch all quotations
+        
+        
+class ExpenseForm(forms.ModelForm):
+    class Meta:
+        model = Expense
+        fields = ['name','description', 'company_name', 'amount','category_type','date','amount','payment_method']
+        
+class SupplierForm(forms.ModelForm):
+    class Meta:
+        model = Supplier
+        fields = ['company_name','contact_name', 'phone', 'email', 'address']
+        
