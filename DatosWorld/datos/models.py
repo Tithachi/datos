@@ -17,19 +17,19 @@ class Customer(models.Model):
     
     
 
-class Supplier(models.Model):
-    supplier_id = models.AutoField(primary_key=True)
-    company_name = models.CharField(max_length=150)
-    contact_name = models.CharField(max_length=150,null=True,blank=True)
-    phone = models.CharField(max_length=13)
-    email = models.EmailField(null=True,blank=True)
-    address = models.TextField()
+# class Supplier(models.Model):
+#     supplier_id = models.AutoField(primary_key=True)
+#     company_name = models.CharField(max_length=150)
+#     contact_name = models.CharField(max_length=150,null=True,blank=True)
+#     phone = models.CharField(max_length=13)
+#     email = models.EmailField(null=True,blank=True)
+#     address = models.TextField()
 
-    class Meta:
-        verbose_name_plural = 'Suppliers'
+#     class Meta:
+#         verbose_name_plural = 'Suppliers'
 
-    def __str__(self):
-        return self.company_name
+#     def __str__(self):
+#         return self.company_name
 
 
 class Quotation(models.Model):
@@ -56,7 +56,7 @@ class QuotationItem(models.Model):
     item = models.ForeignKey('Item', on_delete=models.CASCADE)
     quantity = models.PositiveIntegerField()
 
-    
+
 
 class Invoice(models.Model):
     quotation = models.OneToOneField(Quotation, on_delete=models.CASCADE)
@@ -65,11 +65,33 @@ class Invoice(models.Model):
     due_date = models.DateTimeField()
     amount_paid = models.DecimalField(max_digits=10, decimal_places=2)
     date_updated = models.DateTimeField(default=timezone.now)
-    
+
     def save(self, *args, **kwargs):
+        # Check if this is an update and store the old amount_paid
+        if self.pk:
+            old_invoice = Invoice.objects.get(pk=self.pk)
+            old_amount_paid = old_invoice.amount_paid
+        else:
+            old_amount_paid = None
+
+        # Update the invoice number if not present
         if not self.invoice_number:
             self.invoice_number = self.generate_invoice_number()
+
+        # Call the original save method
         super().save(*args, **kwargs)
+
+        # Create a receipt if this is a new invoice or if the amount_paid has changed
+        if old_amount_paid is None:  # New invoice
+            Receipt.objects.create(
+                invoice=self,
+                amount_received=self.amount_paid
+            )
+        elif self.amount_paid != old_amount_paid:  # Updated invoice with a new payment
+            Receipt.objects.create(
+                invoice=self,
+                amount_received=self.amount_paid
+            )
 
     def generate_invoice_number(self):
         random_digits = ''.join([str(random.randint(0, 9)) for _ in range(5)])
@@ -78,13 +100,28 @@ class Invoice(models.Model):
     def __str__(self):
         return self.invoice_number
 
+
+
 class Receipt(models.Model):
-    invoice = models.OneToOneField(Invoice, on_delete=models.CASCADE)
+    invoice = models.ForeignKey(Invoice, on_delete=models.CASCADE, related_name='receipts')  # ForeignKey instead of OneToOneField
+    receipt_number = models.CharField(max_length=9, unique=True, blank=True)
     date_received = models.DateTimeField(default=timezone.now)
     amount_received = models.DecimalField(max_digits=10, decimal_places=2)
 
+    def save(self, *args, **kwargs):
+        # Generate receipt number if not already set
+        if not self.receipt_number:
+            self.receipt_number = self.generate_receipt_number()
+
+        super().save(*args, **kwargs)
+
+    def generate_receipt_number(self):
+        random_digits = ''.join([str(random.randint(0, 9)) for _ in range(5)])
+        return f'DTSR{random_digits}'
+
     def __str__(self):
-        return f"Receipt {self.id} for Invoice {self.invoice.id}"
+        return f"Receipt {self.receipt_number} for Invoice {self.invoice.id}"
+
 
 class Item(models.Model):
     name = models.CharField(max_length=255)
@@ -124,46 +161,46 @@ class Category(models.Model):
         return self.category_name
 
 
-PAYMENT_METHOD = [
-('Cash', 'Cash'),
-('Card', 'Card'),
-('Credit', 'Credit'),
-('Airtel Money', 'Airtel Money'),
-('MTN Money', 'MTN Money'),
-('Other', 'Other')
-]
+# PAYMENT_METHOD = [
+# ('Cash', 'Cash'),
+# ('Card', 'Card'),
+# ('Credit', 'Credit'),
+# ('Airtel Money', 'Airtel Money'),
+# ('MTN Money', 'MTN Money'),
+# ('Other', 'Other')
+# ]
 
 
-CATEGORY_TYPE = [
-    ('Bank Charge', 'Bank Charge'),
-    ('Current Liabilities', 'Current Liabilities'),
-    ('Long-Term Liabilities', 'Long-Term Liabilities'),
-    ('Cost of Goods Sold', 'Cost of Goods Sold'),
-    ('Operating Expenses', 'Operating Expenses'),
-    ('Administrative Expenses', 'Administrative Expenses'),
-    ('Marketing Expenses', 'Marketing Expenses'),
-    ('Depreciation', 'Depreciation'),
-    ('Miscellaneous Expenses', 'Miscellaneous Expenses'),
-]
+# CATEGORY_TYPE = [
+#     ('Bank Charge', 'Bank Charge'),
+#     ('Current Liabilities', 'Current Liabilities'),
+#     ('Long-Term Liabilities', 'Long-Term Liabilities'),
+#     ('Cost of Goods Sold', 'Cost of Goods Sold'),
+#     ('Operating Expenses', 'Operating Expenses'),
+#     ('Administrative Expenses', 'Administrative Expenses'),
+#     ('Marketing Expenses', 'Marketing Expenses'),
+#     ('Depreciation', 'Depreciation'),
+#     ('Miscellaneous Expenses', 'Miscellaneous Expenses'),
+# ]
 
-class Expense(models.Model):
-    # receipt_photo = models.ImageField(null=True,blank=True, upload_to="images/")
-    expense_id = models.AutoField(primary_key=True)
-    name = models.CharField(max_length=200)
-    description = models.TextField(blank=True,null=True)
-    company_name = models.ForeignKey(Supplier, on_delete=models.SET_NULL, null=True,blank=True)
-    category_type = models.CharField(max_length=100,blank=True,null=True, choices=CATEGORY_TYPE)
-    date = models.DateField(null=True,blank=True)
-    amount = models.DecimalField(max_digits=12,decimal_places=2,null=True,blank=True)
-    payment_method = models.CharField(max_length=30, choices=PAYMENT_METHOD,null=True,blank=True)
-    date_created = models.DateTimeField(default=timezone.now)
+# class Expense(models.Model):
+#     # receipt_photo = models.ImageField(null=True,blank=True, upload_to="images/")
+#     expense_id = models.AutoField(primary_key=True)
+#     name = models.CharField(max_length=200)
+#     description = models.TextField(blank=True,null=True)
+#     company_name = models.ForeignKey(Supplier, on_delete=models.SET_NULL, null=True,blank=True)
+#     category_type = models.CharField(max_length=100,blank=True,null=True, choices=CATEGORY_TYPE)
+#     date = models.DateField(null=True,blank=True)
+#     amount = models.DecimalField(max_digits=12,decimal_places=2,null=True,blank=True)
+#     payment_method = models.CharField(max_length=30, choices=PAYMENT_METHOD,null=True,blank=True)
+#     date_created = models.DateTimeField(default=timezone.now)
     
     
 
-    class Meta:
-        verbose_name_plural = 'Expenses'
-    @property
-    def short_description(self):
-         return truncatechars(self.description,50)
-    def __str__(self):
-        return self.name
+#     class Meta:
+#         verbose_name_plural = 'Expenses'
+#     @property
+#     def short_description(self):
+#          return truncatechars(self.description,50)
+#     def __str__(self):
+#         return self.name

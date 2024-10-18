@@ -1,6 +1,6 @@
 from django.shortcuts import render, redirect
 from .models import *
-from .forms import ItemForm, CustomerForm, QuotationItemFormSet, QuotationForm, InvoiceForm, ExpenseForm, SupplierForm
+from .forms import ItemForm, CustomerForm, QuotationItemFormSet, QuotationForm, InvoiceForm
 from django.shortcuts import render, redirect,get_object_or_404
 from .forms import QuotationForm, QuotationItemFormSet
 from .models import Quotation, Item
@@ -140,6 +140,8 @@ def view_quote_pdf(request, entry_id):
 
 
 
+
+
 def home(request):
     # Fetch all invoices
     invoices = Invoice.objects.all()
@@ -180,8 +182,8 @@ def home(request):
         total_revenue += total
 
         # Calculate profit and expenses
-        profit = total_revenue * Decimal('0.40')
-        expenses = total_revenue * Decimal('0.60')
+        # profit = total_revenue * Decimal('0.40')
+        # expenses = total_revenue * Decimal('0.60')
 
         # Store invoice data
         invoice_data.append({
@@ -230,8 +232,8 @@ def home(request):
         'invoice_data': invoice_data,
         'quotation_data': quotation_data,
         'total_revenue': total_revenue,
-        'profit': profit,
-        'expenses': expenses,
+        # 'profit': profit,
+        # 'expenses': expenses,
         'percentage_change': round(percentage_change, 2),  # Rounded for display
         'change_status': change_status,
     }
@@ -302,8 +304,6 @@ def customers(request):
     return render(request, 'customers.html', context)
 
 
-from decimal import Decimal
-from django.utils import timezone
 
 def invoices(request):
     if request.method == 'POST':
@@ -347,30 +347,38 @@ def invoices(request):
         subtotal = sum(item.item.unit_price * item.quantity for item in quotation_items)
         tax = subtotal * Decimal('0.16')  # Use Decimal for the tax rate
         total = subtotal + tax
-        balance = total - invoice.amount_paid
-        
 
-        # Determine the status based on due_date and amount paid
+        # Fetch all receipts related to this invoice
+        receipts = Receipt.objects.filter(invoice=invoice)
+
+        # Calculate the total amount paid from all receipts
+        paid = sum(receipt.amount_received for receipt in receipts)
+
+        # Calculate the balance as total minus the total paid
+        balance = total - paid
+
+        # Determine the status based on due_date and paid amount
         current_date = timezone.now().date()  # Get the current date
 
         # Convert invoice.due_date to date() if it contains time part
         due_date = invoice.due_date.date() if isinstance(invoice.due_date, datetime) else invoice.due_date
 
-        if invoice.amount_paid == 0:
+        if paid == 0:
             status = 'NOT PAID'
-        elif due_date < current_date and invoice.amount_paid < total:
+        elif due_date < current_date and paid < total:
             status = 'OVERDUE'
-        elif due_date >= current_date and invoice.amount_paid < total:
+        elif due_date >= current_date and paid < total:
             status = 'PARTIAL'
         else:
             status = 'PAID'
 
-        # Add the invoice details along with the total amount and status to the list
+        # Add the invoice details along with the total amount, paid amount, balance, and status to the list
         invoice_data.append({
             'invoice': invoice,
             'total': total,  # Add total amount to the dictionary
+            'paid': paid,  # Add total paid amount
+            'balance': balance,  # Add balance
             'status': status,
-            'balance': balance,# Add the calculated status
         })
 
     context = {
@@ -383,8 +391,30 @@ def invoices(request):
 
 
 
-def reciepts(request):
-    return render(request, 'reciepts.html')
+
+def receipts(request):
+    # Fetch all receipts
+    receipts = Receipt.objects.all()
+    
+    # Create a list to store receipt data
+    receipt_data = []
+    for receipt in receipts:
+        invoice = receipt.invoice  # Get the associated invoice
+        
+        # Add the receipt details along with the total amount and balance to the list
+        receipt_data.append({
+            'receipt': receipt,
+            'invoice': invoice,
+            'amount_received': receipt.amount_received,
+            'due_date': invoice.due_date,
+        })
+    
+    context = {
+        'receipt_data': receipt_data,  # Pass the receipt data to the template
+    }
+    
+    return render(request, 'reciepts.html', context)
+
 
 def items(request):
     if request.method == 'POST':
@@ -402,8 +432,24 @@ def items(request):
     }
     return render(request, 'items.html', context)
 
-def suppliers(request):
-    return render(request, 'suppliers.html')
+# def suppliers(request):
+#     if request.method == 'POST':
+#         form = SupplierForm(request.POST)
+#         if form.is_valid():
+#             form.save()  # Save the supplier to the database
+#             return redirect('suppliers')  # Redirect after successful save
+#     else:
+#         form = SupplierForm()
+
+#     supplier_data = Supplier.objects.all()  # Fetch all suppliers
+
+#     context = {
+#         'form': form,
+#         'supplier_data': supplier_data,  # Pass supplier data to the template
+#     }
+
+#     return render(request, 'suppliers.html', context)
+
 
 
 def addcustomer(request):
@@ -453,26 +499,28 @@ def dashboard_view(request):
     # Pass the daily totals to the template as 'profit_data'
     return render(request, 'home.html', {'profit_data': daily_totals})
 
-def expenses(request):
-    if request.method == 'POST':
-        form = ExpenseForm(request.POST)
-        if form.is_valid():
-            form.save()  # Save the expense to the database
-            return redirect('success_url')  # Redirect to a success page or back to the expense form
+# def expenses(request):
+#     if request.method == 'POST':
+#         form = ExpenseForm(request.POST)
+#         if form.is_valid():
+#             form.save()  # Save the expense to the database
+#             return redirect('expenses')  # Redirect to a success page or back to the expense form
 
-    else:
-        form = ExpenseForm()  # Create a new form instance for GET requests
+#     else:
+#         form = ExpenseForm()  # Create a new form instance for GET requests
 
-    # Fetch suppliers for the company name dropdown (if applicable)
-    supplier_data = Supplier.objects.all()  # Get all suppliers
-    context = {
-        'form': form,
-        'supplier_data': supplier_data,
-        'CATEGORY_TYPE': CATEGORY_TYPE,  # Pass CATEGORY_TYPE to the template
-        'PAYMENT_METHOD': PAYMENT_METHOD,  # Pass PAYMENT_METHOD to the template
-    }
+#     # Fetch suppliers for the company name dropdown (if applicable)
+#     supplier_data = Supplier.objects.all()  # Get all suppliers
+#     expense_data = Expense.objects.all()  # Get all suppliers
+#     context = {
+#         'form': form,
+#         'supplier_data': supplier_data,
+#         'expense_data': expense_data,
+#         'CATEGORY_TYPE': CATEGORY_TYPE,  # Pass CATEGORY_TYPE to the template
+#         'PAYMENT_METHOD': PAYMENT_METHOD,  # Pass PAYMENT_METHOD to the template
+#     }
 
-    return render(request, 'expenses.html', context)
+#     return render(request, 'expenses.html', context)
 
 
 

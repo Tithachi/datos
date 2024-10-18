@@ -2,7 +2,7 @@
 
 {% load static %}
 
-{% block title %}Add a new invoice{% endblock %}
+{% block title %}Add Expense{% endblock %}
 {% block meta %}Datos{% endblock %}
 
 {% block content %}
@@ -48,59 +48,69 @@
                         <!-- Django Form -->
                         <form method="POST" action="{% url 'expenses' %}" id="expensesForm">
                           {% csrf_token %}
-                          <div class="row g-3"> <!-- Increased the gutter space -->
-                              <div class="col mb-3">
-                                  <label for="{{ form.name.id_for_label }}" class="form-label">Expense Name</label>
-                                  <input type="text" class="form-control" name="{{ form.name.name }}" id="{{ form.name.id_for_label }}" placeholder="{{ form.name.label }}" required/>
-                              </div>
-                      
-                              <div class="col mb-3">
-                                  <label for="{{ form.description.id_for_label }}" class="form-label">Description</label>
-                                  <textarea class="form-control" name="{{ form.description.name }}" id="{{ form.description.id_for_label }}" placeholder="{{ form.description.label }}" rows="3"></textarea>
-                              </div>
-                      
-                              <div class="col mb-3">
-                                  <label for="{{ form.company_name.id_for_label }}" class="form-label">Company Name</label>
-                                  <select name="{{ form.company_name.name }}" id="{{ form.company_name.id_for_label }}" class="form-select" required>
-                                      <option disabled selected>Select Company</option>
-                                      {% for supplier in supplier_data %} <!-- Assuming supplier_data contains a list of suppliers -->
-                                          <option value="{{ supplier.id }}">{{ supplier.name }}</option>
-                                      {% endfor %}
-                                  </select>
-                              </div>
+
+                          <div class="row g-2"> <!-- Reduced gutter space -->
+                            <div class="col mb-0">
+                                <label for="{{ form.name.id_for_label }}" class="form-label">Expense Name</label>
+                                <input type="text" class="form-control" name="{{ form.name.name }}" id="{{ form.name.id_for_label }}" placeholder="{{ form.name.label }}" required/>
+                            </div>
+                            
+                            <div class="col mb-0">
+                              <label for="{{ form.company_name.id_for_label }}" class="form-label">Company Name</label>
+                              <select name="{{ form.company_name.name }}" id="{{ form.company_name.id_for_label }}" class="form-select" required>
+                                  <option disabled selected>Select Company</option>
+                                  {% for supplier in supplier_data %}
+                                      <option value="{{ supplier.id }}">
+                                          {{ supplier.company_name }}
+                                      </option>
+                                  {% endfor %}
+                              </select>
                           </div>
+                          
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col mb-3">
+                                <label for="{{ form.description.id_for_label }}" class="form-label">Description</label>
+                                <textarea class="form-control" name="{{ form.description.name }}" id="{{ form.description.id_for_label }}" placeholder="{{ form.description.label }}" rows="3"></textarea>
+                            </div>
+                        </div>
+                        
                       
-                          <div class="row g-3"> <!-- Increased the gutter space -->
-                              <div class="col mb-3">
-                                  <label for="{{ form.amount.id_for_label }}" class="form-label">Amount (K)</label>
-                                  <input type="number" step="0.01" class="form-control" name="{{ form.amount.name }}" id="{{ form.amount.id_for_label }}" placeholder="{{ form.amount.label }}" required/>
-                              </div>
-                      
-                              <div class="col mb-3">
-                                  <label for="{{ form.category_type.id_for_label }}" class="form-label">Category Type</label>
-                                  <select name="{{ form.category_type.name }}" id="{{ form.category_type.id_for_label }}" class="form-select" required>
-                                      <option disabled selected>Select Category</option>
-                                      {% for category in CATEGORY_TYPE %} <!-- Assuming CATEGORY_TYPE is passed in context -->
-                                          <option value="{{ category.0 }}">{{ category.1 }}</option>
-                                      {% endfor %}
-                                  </select>
-                              </div>
-                      
-                              <div class="col mb-3">
-                                  <label for="{{ form.date.id_for_label }}" class="form-label">Date</label>
-                                  <input type="date" class="form-control" name="{{ form.date.name }}" id="{{ form.date.id_for_label }}" placeholder="{{ form.date.label }}" required/>
-                              </div>
-                      
-                              <div class="col mb-3">
-                                  <label for="{{ form.payment_method.id_for_label }}" class="form-label">Payment Method</label>
-                                  <select name="{{ form.payment_method.name }}" id="{{ form.payment_method.id_for_label }}" class="form-select" required>
-                                      <option disabled selected>Select Payment Method</option>
-                                      {% for method in PAYMENT_METHOD %} <!-- Assuming PAYMENT_METHOD is passed in context -->
-                                          <option value="{{ method.0 }}">{{ method.1 }}</option>
-                                      {% endfor %}
-                                  </select>
-                              </div>
+                        <div class="row g-3"> <!-- First row with two columns -->
+                          <div class="col-md-6 mb-3">
+                              <label for="{{ form.amount.id_for_label }}" class="form-label">Amount (K)</label>
+                              <input type="number" step="0.01" class="form-control" name="{{ form.amount.name }}" id="{{ form.amount.id_for_label }}" placeholder="{{ form.amount.label }}" required/>
                           </div>
+                          
+                          <div class="col-md-6 mb-3">
+                              <label for="{{ form.category_type.id_for_label }}" class="form-label">Category Type</label>
+                              <select name="{{ form.category_type.name }}" id="{{ form.category_type.id_for_label }}" class="form-select" required>
+                                  <option disabled selected>Select Category</option>
+                                  {% for category in CATEGORY_TYPE %}
+                                      <option value="{{ category.0 }}">{{ category.1 }}</option>
+                                  {% endfor %}
+                              </select>
+                          </div>
+                      </div>
+                      
+                      <div class="row g-3"> <!-- Second row with two columns -->
+                          <div class="col-md-6 mb-3">
+                              <label for="{{ form.date.id_for_label }}" class="form-label">Date</label>
+                              <input type="date" class="form-control" name="{{ form.date.name }}" id="{{ form.date.id_for_label }}" placeholder="{{ form.date.label }}" required/>
+                          </div>
+                          
+                          <div class="col-md-6 mb-3">
+                              <label for="{{ form.payment_method.id_for_label }}" class="form-label">Payment Method</label>
+                              <select name="{{ form.payment_method.name }}" id="{{ form.payment_method.id_for_label }}" class="form-select" required>
+                                  <option disabled selected>Select Payment Method</option>
+                                  {% for method in PAYMENT_METHOD %}
+                                      <option value="{{ method.0 }}">{{ method.1 }}</option>
+                                  {% endfor %}
+                              </select>
+                          </div>
+                      </div>
+                      
                       
                           <div class="row">
                               <div class="col mb-3">
@@ -127,53 +137,40 @@
                   <table class="table">
                     <thead>
                         <tr>
-                            <th>Invoice Number</th>
-                            <th>Customer</th>
-                            <th>Total (K)</th>
-                            <th>Paid (K)</th>
-                            <th>Balance (K)</th>
-                            <th>Due Date</th>
-                            <th>Status</th>
+                            <th>Name</th>
+                            <th>Supplier</th>
+                            <th>Amount (K)</th>
+                            <th>Payment Method</th>
+                            <th>Date</th>
                             <th>Actions</th>
                         </tr>
                     </thead>
                     <tbody class="table-border-bottom-0">
-                        {% for entry in invoice_data %}
+                        {% for entry in expense_data %}
                         <tr>
-                            <td><strong>{{ entry.invoice.invoice_number }}</strong></td>
-                            <td>{{ entry.invoice.quotation.customer.company }}</td>
-                            <td>{{ entry.total|floatformat:2 }}</td>
-                            <td>{{ entry.invoice.amount_paid }}</td>
-                            <td>{{ entry.balance|floatformat:2 }}</td>
-                            <td>{{ entry.invoice.due_date|date:"SHORT_DATE_FORMAT" }}</td>
+                            <td><strong>{{ entry.name }}</strong></td>
+                            <td>{{ entry.company_name.company_name }}</td>
+                            <td>{{ entry.amount|floatformat:2 }}</td>
+                            <td>{{ entry.get_payment_method_display }}</td>
+                            <td>{{ entry.date|date:"SHORT_DATE_FORMAT" }}</td>
                             <td>
-                                {% if entry.status == 'OVERDUE' %}
-                                    <span class="badge bg-label-danger me-1">OVERDUE</span>
-                                {% elif entry.status == 'PARTIAL' %}
-                                    <span class="badge bg-label-info me-1">PARTIAL</span>
-                                {% elif entry.status == 'NOT PAID' %}
-                                    <span class="badge bg-label-warning me-1">NOT PAID</span> 
-                                {% else %}
-                                    <span class="badge bg-label-success me-1">PAID</span>
-                                {% endif %}
-                            </td>
-                            <td>
-                              <div class="dropdown">
-                                <button type="button" class="btn p-0 dropdown-toggle hide-arrow" data-bs-toggle="dropdown">
-                                  <i class="bx bx-dots-vertical-rounded"></i>
-                                </button>
-                                <div class="dropdown-menu">
-                                  <a class="dropdown-item" href="#"><i class="bx bx-cctv me-1"></i> Preview</a>
-                                  <a class="dropdown-item" href="#"><i class="bx bx-download me-1"></i> Download</a>
-                                  <a class="dropdown-item" href="#"><i class="bx bx-mail-send me-1"></i> Send</a>
-                                  <a class="dropdown-item" href="#"><i class="bx bx-trash me-1"></i> Delete</a>
+                                <div class="dropdown">
+                                    <button type="button" class="btn p-0 dropdown-toggle hide-arrow" data-bs-toggle="dropdown">
+                                        <i class="bx bx-dots-vertical-rounded"></i>
+                                    </button>
+                                    <div class="dropdown-menu">
+                                        <a class="dropdown-item" href="#"><i class="bx bx-cctv me-1"></i> Preview</a>
+                                        <a class="dropdown-item" href="#"><i class="bx bx-download me-1"></i> Download</a>
+                                        <a class="dropdown-item" href="#"><i class="bx bx-mail-send me-1"></i> Send</a>
+                                        <a class="dropdown-item" href="#"><i class="bx bx-trash me-1"></i> Delete</a>
+                                    </div>
                                 </div>
-                              </div>
                             </td>
                         </tr>
                         {% endfor %}
                     </tbody>
                 </table>
+                
                 
                 
                 </div>
