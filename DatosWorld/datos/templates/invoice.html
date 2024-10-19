@@ -2,8 +2,11 @@
 
 {% load static %}
 
-{% block title %}Add a new invoice{% endblock %}
-{% block meta %}Datos{% endblock %}
+{% block title %}Invoices{% endblock %}
+
+{% block search_action %}
+  {{ search_action_url }}
+{% endblock %}
 
 {% block content %}
 
@@ -150,6 +153,44 @@
                         {% endfor %}
                     </tbody>
                 </table>
+
+                <div class="pagination-container mt-4"> <!-- Add spacing between pagination and table with "mt-4" (margin-top) -->
+                  <nav aria-label="Page navigation">
+                      <ul class="pagination justify-content-center custom-pagination">
+                          {% if invoices.has_previous %}
+                              <li class="page-item">
+                                  <a class="page-link rounded-circle" href="?page={{ invoices.previous_page_number }}&search={{ search_query }}" aria-label="Previous">
+                                      <span aria-hidden="true">&laquo;</span>
+                                  </a>
+                              </li>
+                          {% else %}
+                              <li class="page-item disabled">
+                                  <span class="page-link rounded-circle" aria-hidden="true">&laquo;</span>
+                              </li>
+                          {% endif %}
+              
+                          {% for num in invoices.paginator.page_range %}
+                              <li class="page-item {% if invoices.number == num %} active {% endif %}">
+                                  <a class="page-link rounded-circle" href="?page={{ num }}&search={{ search_query }}">{{ num }}</a>
+                              </li>
+                          {% endfor %}
+              
+                          {% if invoices.has_next %}
+                              <li class="page-item">
+                                  <a class="page-link rounded-circle" href="?page={{ invoices.next_page_number }}&search={{ search_query }}" aria-label="Next">
+                                      <span aria-hidden="true">&raquo;</span>
+                                  </a>
+                              </li>
+                          {% else %}
+                              <li class="page-item disabled">
+                                  <span class="page-link rounded-circle" aria-hidden="true">&raquo;</span>
+                              </li>
+                          {% endif %}
+                      </ul>
+                  </nav>
+              </div>
+              
+                
                 
                 
                 

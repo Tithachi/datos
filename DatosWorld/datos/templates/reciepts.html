@@ -2,6 +2,13 @@
 
 {% load static %}
 
+
+{% block title %}Receipts{% endblock %}
+
+{% block search_action %}
+  {{ search_action_url }}
+{% endblock %}
+
 {% block content %}
 
           <!-- Content wrapper -->
@@ -33,37 +40,28 @@
                 <div class="table-responsive text-nowrap">
                   <table class="table table-striped">
                     <thead>
-                        <tr>
-                            <th>Receipt Number</th>
-                            <th>Invoice Number</th>
-                            <th>Paid (K)</th>
-                            <th>Due Date</th>
-                            <th>Actions</th>
-                        </tr>
+                      <tr>
+                        <th>Receipt Number</th>
+                        <th>Invoice Number</th>
+                        <th>Amount Received</th>
+                        <th>Due Date</th>
+                      </tr>
                     </thead>
-                    <tbody class="table-border-bottom-0">
-                        {% for entry in receipt_data %}
-                        <tr>
-                            <td><strong>{{ entry.receipt.receipt_number }}</strong></td>
-                            <td>{{ entry.invoice.invoice_number }}</td>
-                            <td>{{ entry.amount_received|floatformat:2 }}</td>
-                            <td>{{ entry.due_date|date:"SHORT_DATE_FORMAT" }}</td>
-                            <td>
-                                <div class="dropdown">
-                                    <button type="button" class="btn p-0 dropdown-toggle hide-arrow" data-bs-toggle="dropdown">
-                                        <i class="bx bx-dots-vertical-rounded"></i>
-                                    </button>
-                                    <div class="dropdown-menu">
-                                        <a class="dropdown-item" href="#"><i class="bx bx-cctv me-1"></i> Preview</a>
-                                        <a class="dropdown-item" href="#"><i class="bx bx-download me-1"></i> Download</a>
-                                        <a class="dropdown-item" href="#"><i class="bx bx-trash me-1"></i> Delete</a>
-                                    </div>
-                                </div>
-                            </td>
-                        </tr>
-                        {% endfor %}
+                    <tbody>
+                      {% for receipt in receipt_data %}
+                      <tr>
+                        <td>{{ receipt.receipt.receipt_number }}</td>
+                        <td>{{ receipt.invoice.invoice_number }}</td>
+                        <td>{{ receipt.amount_received }}</td>
+                        <td>{{ receipt.invoice.due_date }}</td>
+                      </tr>
+                      {% empty %}
+                      <tr>
+                        <td colspan="4">No receipts found</td>
+                      </tr>
+                      {% endfor %}
                     </tbody>
-                </table>
+                  </table>
                 
                 <!-- Add some spacing between the table and pagination controls -->
                 <div class="mt-4"></div> <!-- Adds margin-top spacing -->

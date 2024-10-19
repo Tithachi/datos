@@ -5,6 +5,11 @@
 {% block title %}Add a new quote{% endblock %}
 {% block meta %}Datos{% endblock %}
 
+
+{% block search_action %}
+  {% url 'quotes' %}
+{% endblock %}
+
 {% block content %}
 
           <!-- Content wrapper -->
@@ -166,7 +171,7 @@
                           <th>Quotation Number</th>
                           <th>Customer</th>
                           <th>Total (K)</th>
-                          <th>Status</th> <!-- New Status column -->
+                          <th>Status</th>
                           <th>Expiry Date</th>
                           <th>Actions</th>
                         </tr>
@@ -195,9 +200,53 @@
                             </div>
                           </td>
                         </tr>
+                        {% empty %}
+                        <tr>
+                          <td colspan="6">No quotations found</td>
+                        </tr>
                         {% endfor %}
                       </tbody>
                     </table>
+                    
+                    <!-- Pagination Controls -->
+                    <div class="pagination-container mt-4">
+                      <!-- Add spacing between pagination and table with "mt-4" (margin-top) -->
+                      <nav aria-label="Page navigation">
+                        <ul class="pagination justify-content-center custom-pagination">
+                          {% if quotation_data.has_previous %}
+                          <li class="page-item">
+                            <a class="page-link rounded-circle" href="?page={{ quotation_data.previous_page_number }}&search={{ search_query }}" aria-label="Previous">
+                              <span aria-hidden="true">&laquo;</span>
+                            </a>
+                          </li>
+                          {% else %}
+                          <li class="page-item disabled">
+                            <span class="page-link rounded-circle" aria-hidden="true">&laquo;</span>
+                          </li>
+                          {% endif %}
+                    
+                          {% for num in quotation_data.paginator.page_range %}
+                          <li class="page-item {% if quotation_data.number == num %} active {% endif %}">
+                            <a class="page-link rounded-circle" href="?page={{ num }}&search={{ search_query }}">{{ num }}</a>
+                          </li>
+                          {% endfor %}
+                    
+                          {% if quotation_data.has_next %}
+                          <li class="page-item">
+                            <a class="page-link rounded-circle" href="?page={{ quotation_data.next_page_number }}&search={{ search_query }}" aria-label="Next">
+                              <span aria-hidden="true">&raquo;</span>
+                            </a>
+                          </li>
+                          {% else %}
+                          <li class="page-item disabled">
+                            <span class="page-link rounded-circle" aria-hidden="true">&raquo;</span>
+                          </li>
+                          {% endif %}
+                        </ul>
+                      </nav>
+                    </div>
+                    
+
                     
                     
                   </div>

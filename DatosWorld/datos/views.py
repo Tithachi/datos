@@ -22,8 +22,9 @@ from django.core.mail import EmailMessage
 from django.http import HttpResponse
 from django.conf import settings
 from .models import Invoice, QuotationItem  # Adjust the import according to your app structure
-from django.core.paginator import Paginator
+from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.db.models import Q
+from django.urls import reverse
 
 
 
@@ -441,16 +442,10 @@ def home(request):
 
 
 def quotes(request):
+    # Handle form submissions
     if request.method == 'POST':
         form = QuotationForm(request.POST)
         formset = QuotationItemFormSet(request.POST)
-
-        # Debugging: Print out request POST data
-        print("Request POST data:", request.POST)
-        print("Quotation Form Valid:", form.is_valid())
-        print("Quotation Form Errors:", form.errors)
-        print("Formset Valid:", formset.is_valid())
-        print("Formset Errors:", formset.errors)
 
         if form.is_valid() and formset.is_valid():
             # Save the Quotation instance first
@@ -469,15 +464,22 @@ def quotes(request):
         form = QuotationForm()
         formset = QuotationItemFormSet(queryset=QuotationItem.objects.none())  # Empty formset for new data
 
-    # Fetch all quotations and items
-    quotes = Quotation.objects.all().order_by('-date_created')
+    # Implement search functionality
+    search_query = request.GET.get('search', '')
+    quotes = Quotation.objects.all()
+
+    if search_query:
+        quotes = quotes.filter(
+            Q(quotation_number__icontains=search_query) |
+            Q(customer__company__icontains=search_query)
+        )
 
     # Calculate total and status for each quotation
     quotation_data = []
     for quotation in quotes:
         # Fetch items for the quotation
         quotation_items = QuotationItem.objects.filter(quotation=quotation)
-        
+
         # Calculate total
         subtotal = sum(item.item.unit_price * item.quantity for item in quotation_items)
         tax = subtotal * Decimal('0.16')  # Assuming a 16% tax rate
@@ -506,15 +508,23 @@ def quotes(request):
             'items': quotation_items  # Include the items for the form
         })
 
+    # Paginate the results
+    paginator = Paginator(quotation_data, 7)  # Show 5 quotations per page
+    page_number = request.GET.get('page')
+    quotation_data_page = paginator.get_page(page_number)
+
     items = Item.objects.all()
 
     context = {
         'form': form,
         'formset': formset,
-        'quotation_data': quotation_data,
+        'quotation_data': quotation_data_page,  # Pass paginated data to template
         'items': items,
+        'search_query': search_query,  # Ensure search query persists
     }
     return render(request, 'quotes.html', context)
+
+
 
 def customers(request):
     if request.method == 'POST':
@@ -534,7 +544,12 @@ def customers(request):
 
 
 
+from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
+
 def invoices(request):
+    # Capture search query
+    search_query = request.GET.get('search', '')
+
     if request.method == 'POST':
         form = InvoiceForm(request.POST)
         if form.is_valid():
@@ -543,24 +558,35 @@ def invoices(request):
     else:
         form = InvoiceForm()
 
-    # Fetch all invoices
-    invoices = Invoice.objects.all().order_by('-date_created')
-    
-    # Fetch all quotations
-    quotations = Quotation.objects.all()
+    # Fetch all invoices or filter based on the search query
+    if search_query:
+        invoices_list = Invoice.objects.filter(
+            Q(invoice_number__icontains=search_query) |
+            Q(quotation__customer__company__icontains=search_query)
+        ).order_by('-date_created')
+    else:
+        invoices_list = Invoice.objects.all().order_by('-date_created')
 
-    # Calculate total and filter quotations with "VALID" status
+    # Set up pagination
+    paginator = Paginator(invoices_list, 7)  # 10 invoices per page
+    page = request.GET.get('page', 1)
+
+    try:
+        invoices = paginator.page(page)
+    except PageNotAnInteger:
+        invoices = paginator.page(1)
+    except EmptyPage:
+        invoices = paginator.page(paginator.num_pages)
+
+    # Fetch quotations and handle the total and status logic (same as before)
+    quotations = Quotation.objects.all()
     quotation_data = []
     for quotation in quotations:
-        # Fetch the related quotation items for each quotation
         quotation_items = QuotationItem.objects.filter(quotation=quotation)
-
-        # Calculate the total for the quotation
         subtotal = sum(item.item.unit_price * item.quantity for item in quotation_items)
-        tax = subtotal * Decimal('0.16')  # Assuming a 16% tax rate
+        tax = subtotal * Decimal('0.16')
         total = subtotal + tax
 
-        # Determine the status based on the logic
         try:
             invoice = Invoice.objects.get(quotation=quotation)
             status = 'INVOICED'
@@ -573,7 +599,6 @@ def invoices(request):
                 status = 'EXPIRED'
                 status_class = 'bg-label-danger'
 
-        # Only add quotations that are VALID
         if status == 'VALID':
             quotation_data.append({
                 'quotation': quotation,
@@ -582,30 +607,19 @@ def invoices(request):
                 'status_class': status_class
             })
 
-    # Create a list to store invoice data along with the total amount for each quotation
+    # Invoice data with totals and status
     invoice_data = []
     for invoice in invoices:
-        # Fetch the related quotation items for the invoice's quotation
         quotation_items = QuotationItem.objects.filter(quotation=invoice.quotation)
-
-        # Calculate the total for the quotation linked to this invoice
         subtotal = sum(item.item.unit_price * item.quantity for item in quotation_items)
-        tax = subtotal * Decimal('0.16')  # Use Decimal for the tax rate
+        tax = subtotal * Decimal('0.16')
         total = subtotal + tax
 
-        # Fetch all receipts related to this invoice
         receipts = Receipt.objects.filter(invoice=invoice)
-
-        # Calculate the total amount paid from all receipts
         paid = sum(receipt.amount_received for receipt in receipts)
-
-        # Calculate the balance as total minus the total paid
         balance = total - paid
 
-        # Determine the status based on due_date and paid amount
-        current_date = timezone.now().date()  # Get the current date
-
-        # Convert invoice.due_date to date() if it contains time part
+        current_date = timezone.now().date()
         due_date = invoice.due_date.date() if isinstance(invoice.due_date, datetime) else invoice.due_date
 
         if paid == 0:
@@ -617,61 +631,55 @@ def invoices(request):
         else:
             status = 'PAID'
 
-        # Add the invoice details along with the total amount, paid amount, balance, and status to the list
         invoice_data.append({
             'invoice': invoice,
-            'total': total,  # Add total amount to the dictionary
-            'paid': paid,  # Add total paid amount
-            'balance': balance,  # Add balance
+            'total': total,
+            'paid': paid,
+            'balance': balance,
             'status': status,
         })
 
     context = {
         'form': form,
-        'invoice_data': invoice_data,  # Passing the invoice data with totals and status
-        'quotation_data': quotation_data  # Pass only "VALID" quotations with totals
+        'invoice_data': invoice_data,
+        'quotation_data': quotation_data,
+        'search_query': search_query,  # Pass search query for pagination links
+        'invoices': invoices  # Pass the paginated invoices
     }
 
     return render(request, 'invoice.html', context)
 
 
 
-def receipts(request):
-    search_query = request.GET.get('search', '')  # Get the search query from the GET parameters
 
-    # Fetch receipts, filtering by the search query if present
-    receipts = Receipt.objects.all().order_by('-date_received')
+
+
+def receipts(request):
+    search_query = request.GET.get('search', '')  # Capture the search query from the request
 
     if search_query:
-        receipts = receipts.filter(
-            Q(receipt_number__icontains=search_query) |  # Filter by receipt number
-            Q(invoice__invoice_number__icontains=search_query)  # Filter by invoice number
-        )
+        # Filter receipts based on the search query
+        receipts = Receipt.objects.filter(
+            Q(receipt_number__icontains=search_query) | Q(invoice__invoice_number__icontains=search_query)
+        ).order_by('-date_received')
+    else:
+        receipts = Receipt.objects.all().order_by('-date_received')  # Default behavior: list all receipts
 
-    # Pagination
-    paginator = Paginator(receipts, 10)  # Show 10 receipts per page
-    page_number = request.GET.get('page')
-    page_obj = paginator.get_page(page_number)
-
-    # Create a list to store receipt data
     receipt_data = []
-    for receipt in page_obj:
-        invoice = receipt.invoice  # Get the associated invoice
-        
-        # Add the receipt details along with the total amount and balance to the list
+    for receipt in receipts:
+        invoice = receipt.invoice
         receipt_data.append({
             'receipt': receipt,
             'invoice': invoice,
             'amount_received': receipt.amount_received,
             'due_date': invoice.due_date,
         })
-    
+
     context = {
-        'receipt_data': receipt_data,  # Pass the filtered receipt data to the template
-        'page_obj': page_obj,  # Pass the pagination object
-        'search_query': search_query,  # Pass the search query back to the template for display
+        'receipt_data': receipt_data,
+        'search_action_url': reverse('reciepts'),  # Provide the search action URL dynamically
     }
-    
+
     return render(request, 'reciepts.html', context)
 
 
@@ -755,24 +763,30 @@ def suppliers(request):
     suppliers = Supplier.objects.all()
     return render(request, 'suppliers.html', {'form': form, 'suppliers': suppliers})
 
+
+
 def expenses(request):
-    suppliers = Supplier.objects.all()  # Fetching all suppliers
-    expenses = Expense.objects.all().order_by('-date')  # Fetching all suppliers
-    if request.method == 'POST':
-        form = ExpenseForm(request.POST)
-        if form.is_valid():
-            form.save()
-            return redirect('expenses')  # Adjust to your URL name for listing expenses
+    search_query = request.GET.get('search', '')  # Capture the search query from the request
+    
+    if search_query:
+        # Filter expenses based on the search query
+        expenses = Expense.objects.filter(
+            Q(name__icontains=search_query) | Q(supplier__company_name__icontains=search_query)
+        ).order_by('-date')
     else:
-        form = ExpenseForm()
+        expenses = Expense.objects.all().order_by('-date')  # Default behavior: list all expenses
+
+    suppliers = Supplier.objects.all()
 
     context = {
-        'form': form,
+        'form': ExpenseForm(),
         'expenses': expenses,
-        'suppliers': suppliers,  # Pass suppliers to the template
+        'suppliers': suppliers,
+        'search_action_url': reverse('expenses'),  # Provide the search action URL dynamically
     }
 
     return render(request, 'expenses.html', context)
+
 
 
 
