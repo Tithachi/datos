@@ -22,7 +22,11 @@ from django.core.mail import EmailMessage
 from django.http import HttpResponse
 from django.conf import settings
 from .models import Invoice, QuotationItem  # Adjust the import according to your app structure
-from io import BytesIO
+from django.core.paginator import Paginator
+from django.db.models import Q
+
+
+
 
 def send_invoice_email(request, invoice_id):
     # Fetch the Invoice entry from the database
@@ -106,7 +110,7 @@ def send_invoice_email(request, invoice_id):
     # Create an email message
     email = EmailMessage(
         subject=f"Invoice {invoice.invoice_number}",
-        body="Please find attached your invoice.",
+        body="Please find attached your invoice from Datos Technology.",
         from_email=settings.DEFAULT_FROM_EMAIL,
         to=[invoice.quotation.customer.email,'timothy.chimfwembe@datoscw.com'],
     )
@@ -436,12 +440,6 @@ def home(request):
     return render(request, 'home.html', context)
 
 
-
-
-
-
-
-
 def quotes(request):
     if request.method == 'POST':
         form = QuotationForm(request.POST)
@@ -449,7 +447,6 @@ def quotes(request):
 
         # Debugging: Print out request POST data
         print("Request POST data:", request.POST)
-        
         print("Quotation Form Valid:", form.is_valid())
         print("Quotation Form Errors:", form.errors)
         print("Formset Valid:", formset.is_valid())
@@ -474,16 +471,50 @@ def quotes(request):
 
     # Fetch all quotations and items
     quotes = Quotation.objects.all().order_by('-date_created')
+
+    # Calculate total and status for each quotation
+    quotation_data = []
+    for quotation in quotes:
+        # Fetch items for the quotation
+        quotation_items = QuotationItem.objects.filter(quotation=quotation)
+        
+        # Calculate total
+        subtotal = sum(item.item.unit_price * item.quantity for item in quotation_items)
+        tax = subtotal * Decimal('0.16')  # Assuming a 16% tax rate
+        total = subtotal + tax
+
+        # Check if there is an invoice associated with this quotation
+        try:
+            invoice = Invoice.objects.get(quotation=quotation)
+            status = 'INVOICED'
+            status_class = 'bg-label-success'  # Green
+        except Invoice.DoesNotExist:
+            # If no invoice, check the expiry date
+            if timezone.now() <= quotation.expiry_date:
+                status = 'VALID'
+                status_class = 'bg-label-info'  # Blue
+            else:
+                status = 'EXPIRED'
+                status_class = 'bg-label-danger'  # Red
+
+        # Add quotation, total, status, and status class to the data list
+        quotation_data.append({
+            'quotation': quotation,
+            'total': total,
+            'status': status,
+            'status_class': status_class,
+            'items': quotation_items  # Include the items for the form
+        })
+
     items = Item.objects.all()
 
     context = {
         'form': form,
         'formset': formset,
-        'quotes': quotes,
+        'quotation_data': quotation_data,
         'items': items,
     }
     return render(request, 'quotes.html', context)
-
 
 def customers(request):
     if request.method == 'POST':
@@ -518,7 +549,7 @@ def invoices(request):
     # Fetch all quotations
     quotations = Quotation.objects.all()
 
-    # Calculate total for each quotation and store it
+    # Calculate total and filter quotations with "VALID" status
     quotation_data = []
     for quotation in quotations:
         # Fetch the related quotation items for each quotation
@@ -529,11 +560,27 @@ def invoices(request):
         tax = subtotal * Decimal('0.16')  # Assuming a 16% tax rate
         total = subtotal + tax
 
-        # Store the quotation data with the total
-        quotation_data.append({
-            'quotation': quotation,
-            'total': total
-        })
+        # Determine the status based on the logic
+        try:
+            invoice = Invoice.objects.get(quotation=quotation)
+            status = 'INVOICED'
+            status_class = 'bg-label-success'
+        except Invoice.DoesNotExist:
+            if timezone.now() <= quotation.expiry_date:
+                status = 'VALID'
+                status_class = 'bg-label-info'
+            else:
+                status = 'EXPIRED'
+                status_class = 'bg-label-danger'
+
+        # Only add quotations that are VALID
+        if status == 'VALID':
+            quotation_data.append({
+                'quotation': quotation,
+                'total': total,
+                'status': status,
+                'status_class': status_class
+            })
 
     # Create a list to store invoice data along with the total amount for each quotation
     invoice_data = []
@@ -582,21 +629,33 @@ def invoices(request):
     context = {
         'form': form,
         'invoice_data': invoice_data,  # Passing the invoice data with totals and status
-        'quotation_data': quotation_data  # Pass the calculated quotation totals
+        'quotation_data': quotation_data  # Pass only "VALID" quotations with totals
     }
 
     return render(request, 'invoice.html', context)
 
 
 
-
 def receipts(request):
-    # Fetch all receipts
+    search_query = request.GET.get('search', '')  # Get the search query from the GET parameters
+
+    # Fetch receipts, filtering by the search query if present
     receipts = Receipt.objects.all().order_by('-date_received')
-    
+
+    if search_query:
+        receipts = receipts.filter(
+            Q(receipt_number__icontains=search_query) |  # Filter by receipt number
+            Q(invoice__invoice_number__icontains=search_query)  # Filter by invoice number
+        )
+
+    # Pagination
+    paginator = Paginator(receipts, 10)  # Show 10 receipts per page
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+
     # Create a list to store receipt data
     receipt_data = []
-    for receipt in receipts:
+    for receipt in page_obj:
         invoice = receipt.invoice  # Get the associated invoice
         
         # Add the receipt details along with the total amount and balance to the list
@@ -608,10 +667,14 @@ def receipts(request):
         })
     
     context = {
-        'receipt_data': receipt_data,  # Pass the receipt data to the template
+        'receipt_data': receipt_data,  # Pass the filtered receipt data to the template
+        'page_obj': page_obj,  # Pass the pagination object
+        'search_query': search_query,  # Pass the search query back to the template for display
     }
     
     return render(request, 'reciepts.html', context)
+
+
 
 
 def items(request):

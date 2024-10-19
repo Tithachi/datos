@@ -160,30 +160,36 @@
                 <!-- Quote Entries Table -->
                 <div class="card mt-4">
                   <div class="table-responsive text-nowrap">
-                    <table class="table">
+                    <table class="table table-striped">
                       <thead>
                         <tr>
                           <th>Quotation Number</th>
                           <th>Customer</th>
-                          <th>Date Created</th>
+                          <th>Total (K)</th>
+                          <th>Status</th> <!-- New Status column -->
                           <th>Expiry Date</th>
                           <th>Actions</th>
                         </tr>
                       </thead>
                       <tbody class="table-border-bottom-0">
-                        {% for quote in quotes %}
+                        {% for quote_data in quotation_data %}
                         <tr>
-                          <td><strong>{{ quote.quotation_number }}</strong></td>
-                          <td>{{ quote.customer.company }}</td>
-                          <td>{{ quote.date_created }}</td>
-                          <td>{{ quote.expiry_date }}</td>
+                          <td><strong>{{ quote_data.quotation.quotation_number }}</strong></td>
+                          <td>{{ quote_data.quotation.customer.company }}</td>
+                          <td>{{ quote_data.total|floatformat:2 }}</td>
+                          <td>
+                            <span class="badge {{ quote_data.status_class }} me-1">{{ quote_data.status }}</span>
+                          </td>
+                          <td>{{ quote_data.quotation.expiry_date }}</td>
                           <td>
                             <div class="dropdown">
                               <button type="button" class="btn p-0 dropdown-toggle hide-arrow" data-bs-toggle="dropdown">
                                 <i class="bx bx-dots-vertical-rounded"></i>
                               </button>
                               <div class="dropdown-menu">
-                                <a class="dropdown-item" href="{% url 'view_quote_pdf' quote.id %}"><i class="bx bx-cctv me-1"></i> Preview</a>
+                                <a class="dropdown-item" href="{% url 'view_quote_pdf' quote_data.quotation.id %}">
+                                  <i class="bx bx-cctv me-1"></i> Preview
+                                </a>
                                 <a class="dropdown-item" href="#"><i class="bx bx-trash me-1"></i> Delete</a>
                               </div>
                             </div>
@@ -192,6 +198,8 @@
                         {% endfor %}
                       </tbody>
                     </table>
+                    
+                    
                   </div>
                 </div>
               </div>

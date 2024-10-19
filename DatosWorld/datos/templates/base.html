@@ -197,15 +197,21 @@
               <div class="navbar-nav align-items-center">
                 <div class="nav-item d-flex align-items-center">
                   <i class="bx bx-search fs-4 lh-0"></i>
-                  <input
-                    type="text"
-                    class="form-control border-0 shadow-none"
-                    placeholder="Search..."
-                    aria-label="Search..."
-                  />
+                  <form method="GET" action="{% url 'reciepts' %}">
+                    <input
+                      type="text"
+                      name="search"
+                      class="form-control border-0 shadow-none"
+                      placeholder="Search receipts or invoices..."
+                      aria-label="Search..."
+                      value="{{ request.GET.search|default_if_none:'' }}" />
+                  </form>
                 </div>
               </div>
-              <!-- /Search -->
+<!-- /Search -->
+
+
+
 
               <ul class="navbar-nav flex-row align-items-center ms-auto">
                 <!-- Place this tag where you want the button to render. -->
