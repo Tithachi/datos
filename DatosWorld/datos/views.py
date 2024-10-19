@@ -1,6 +1,6 @@
 from django.shortcuts import render, redirect
 from .models import *
-from .forms import ItemForm, CustomerForm, QuotationItemFormSet, QuotationForm, InvoiceForm
+from .forms import ItemForm, CustomerForm, QuotationItemFormSet, QuotationForm, InvoiceForm, SupplierForm, ExpenseForm
 from django.shortcuts import render, redirect,get_object_or_404
 from .forms import QuotationForm, QuotationItemFormSet
 from .models import Quotation, Item
@@ -8,7 +8,7 @@ from io import BytesIO
 from django.http import HttpResponse
 from django.template.loader import get_template
 from django.views import View
-from .pdf_utils import generate_quote
+from .pdf_utils import generate_quote, generate_invoice
 import pandas as pd
 from decimal import Decimal
 from django.utils import timezone  # For current date and time
@@ -18,6 +18,107 @@ from django.http import JsonResponse
 from datetime import datetime, timedelta
 from django.db.models import F, Sum, FloatField
 from django.db.models.functions import Coalesce
+from django.core.mail import EmailMessage
+from django.http import HttpResponse
+from django.conf import settings
+from .models import Invoice, QuotationItem  # Adjust the import according to your app structure
+from io import BytesIO
+
+def send_invoice_email(request, invoice_id):
+    # Fetch the Invoice entry from the database
+    invoice = get_object_or_404(Invoice, id=invoice_id)
+    
+    # Fetch related items and calculate totals (similar to your previous view)
+    quotation_items = QuotationItem.objects.filter(quotation=invoice.quotation)
+    
+    # Create a list of items for the PDF table
+    items = []
+    for q_item in quotation_items:
+        item = q_item.item  # Assuming 'item' is linked to another model with 'description' and 'unit_price' fields
+        item_data = {
+            "name": f"{item.name}",
+            "description": f"{item.description}",
+            "rate": f"{item.unit_price:.2f}",
+            "qty": str(q_item.quantity),
+            "discount": "5.00",  # Example discount value
+            "amount": f"{(item.unit_price * q_item.quantity):.2f}",
+            "tax": f"{(item.unit_price * q_item.quantity * Decimal(0.16)):.2f}",
+        }
+        items.append(item_data)
+    
+    # Calculate totals for the PDF
+    subtotal = sum(float(i['amount']) for i in items)
+    tax = subtotal * 0.16  # Example 16% tax
+    total = subtotal + tax
+
+    # Prepare totals dictionary
+    totals = {
+        'subtotal': f"ZMW {subtotal:.2f}",
+        'tax': f"ZMW {tax:.2f}",
+        'total': f"ZMW {total:.2f}",
+        'paid': 'ZMW 0.00',  # Example value
+        'balance_due': f"ZMW {total:.2f}",
+    }
+    
+    # Dummy company details (replace with actual details or fetch from DB)
+    company_details = {
+        'name': "Datos Technology",
+        'address': "11586 Teagles Rd, Makeni, Lusaka",
+        'email': "info@datoscw.com",
+        'phone': "+260 96 4394236",
+        'payment_info': "MTN Money: +260 96 4394236",
+        'notes': "datos coming soon..."
+    }
+
+    # Client details
+    client_details = {
+        'name': invoice.quotation.customer.company,
+        'email': invoice.quotation.customer.email,
+        'phone': invoice.quotation.customer.phone,
+        'address': invoice.quotation.customer.address,
+    }
+
+    # Invoice receipt info
+    receipt_info = {
+        'number': invoice.invoice_number,
+        'date': invoice.date_created.strftime('%Y-%m-%d'),
+        'due_date': invoice.due_date.strftime('%Y-%m-%d'),
+    }
+
+    # Create a file-like buffer to receive PDF data
+    buffer = BytesIO()
+
+    # Generate the PDF with actual data
+    generate_invoice(
+        buffer,
+        svg_logo_path="C:/Users/Timothy/Desktop/Datos/DatosWorld/static/datos/assets/img/pdf_elements/datosbb.svg",
+        company_details=company_details,
+        client_details=client_details,
+        receipt_info=receipt_info,
+        items=items,
+        totals=totals,
+        watermark_path="C:/Users/Timothy/Desktop/Datos/DatosWorld/static/datos/assets/img/pdf_elements/datos_watermark.png"
+    )
+
+    # File pointer goes to the beginning of the buffer
+    buffer.seek(0)
+
+    # Create an email message
+    email = EmailMessage(
+        subject=f"Invoice {invoice.invoice_number}",
+        body="Please find attached your invoice.",
+        from_email=settings.DEFAULT_FROM_EMAIL,
+        to=[invoice.quotation.customer.email,'timothy.chimfwembe@datoscw.com'],
+    )
+
+    # Attach the PDF file to the email
+    email.attach(f"Invoice_{invoice.invoice_number}.pdf", buffer.getvalue(), 'application/pdf')
+
+    # Send the email
+    email.send()
+
+    return HttpResponse("Invoice sent successfully!")
+
 
 
 def get_revenue_data(request):
@@ -139,106 +240,203 @@ def view_quote_pdf(request, entry_id):
     return HttpResponse(buffer, content_type='application/pdf')
 
 
+def view_invoice_pdf(request, entry_id):
+    # Fetch the Invoice entry from the database
+    invoice = get_object_or_404(Invoice, id=entry_id)
+
+    # Fetch related items (assuming there are related quotation items through the linked quotation)
+    invoice_items = QuotationItem.objects.filter(quotation=invoice.quotation)
+
+    # Prepare items data for the PDF
+    items = []
+    for q_item in invoice_items:
+        item = q_item.item  # Assuming 'item' is linked to another model with 'description' and 'unit_price' fields
+        item_data = {
+            "name": f"{item.name}",
+            "description": f"{item.description}",
+            "rate": f"{item.unit_price:.2f}",
+            "qty": str(q_item.quantity),
+            "discount": "5.00",  # Example discount value
+            "amount": f"{(item.unit_price * q_item.quantity):.2f}",
+            "tax": f"{(item.unit_price * q_item.quantity * Decimal(0.16)):.2f}",
+        }
+        items.append(item_data)
+
+    # Calculate totals for the PDF
+    subtotal = sum(float(i['amount']) for i in items)
+    tax = subtotal * 0.16  # Example 16% tax
+    total = subtotal + tax
+    balance_due = Decimal(total) - invoice.amount_paid
+
+    totals = {
+        'subtotal': f"ZMW {subtotal:.2f}",
+        'discount': 'ZMW 0.00',  # Example value
+        'shipping': 'ZMW 0.00',  # Example value
+        'tax': f"ZMW {tax:.2f}",
+        'total': f"ZMW {total:.2f}",
+        'paid': f"ZMW {invoice.amount_paid:.2f}",
+        'balance_due': f"ZMW {balance_due:.2f}",  # Now works without the error
+    }
+
+    # Dummy company details (replace with actual details or fetch from DB)
+    company_details = {
+        'name': "Datos Technology",
+        'address': "11586 Teagles Rd, Makeni, Lusaka",
+        'email': "info@datoscw.com",
+        'phone': "+260 96 4394236",
+        'payment_info': "MTN Money: +260 96 4394236",
+        'notes': "datos coming soon..."
+    }
+
+    # Client details (from the related Quotation model's 'customer' foreign key)
+    client_details = {
+        'name': invoice.quotation.customer.company,
+        'email': invoice.quotation.customer.email,
+        'phone': invoice.quotation.customer.phone,
+        'address': invoice.quotation.customer.address,
+    }
+
+    # Invoice receipt info
+    receipt_info = {
+        'number': invoice.invoice_number,
+        'date': invoice.date_created.strftime('%Y-%m-%d'),
+        'due_date': invoice.due_date.strftime('%Y-%m-%d'),
+        'created_on': pd.Timestamp.now(),  # Simulating the created_on field for example purposes
+    }
+
+    # Create a file-like buffer to receive PDF data
+    buffer = BytesIO()
+
+    # Generate the PDF with actual data
+    generate_quote(
+        buffer,
+        svg_logo_path="C:/Users/Timothy/Desktop/Datos/DatosWorld/static/datos/assets/img/pdf_elements/datosbb.svg",
+        company_details=company_details,
+        client_details=client_details,
+        receipt_info=receipt_info,
+        items=items,
+        totals=totals,
+        watermark_path="C:/Users/Timothy/Desktop/Datos/DatosWorld/static/datos/assets/img/pdf_elements/datos_watermark.png"
+    )
+
+    # File pointer goes to the beginning of the buffer
+    buffer.seek(0)
+
+    # Return the PDF as a response for viewing in the browser
+    return HttpResponse(buffer, content_type='application/pdf')
 
 
 
 def home(request):
-    # Fetch all invoices
-    invoices = Invoice.objects.all()
-
-    # Fetch all quotations
-    quotations = Quotation.objects.all()
+    # Fetch all invoices, quotations, and expenses
+    invoices = Invoice.objects.all().order_by('-date_created')
+    quotations = Quotation.objects.all().order_by('-date_created')
+    expenses = Expense.objects.all().order_by('-date')
 
     # Calculate total for each quotation and store it
     quotation_data = []
     for quotation in quotations:
-        # Fetch the related quotation items for each quotation
         quotation_items = QuotationItem.objects.filter(quotation=quotation)
-
-        # Calculate the total for the quotation
         subtotal = sum(item.item.unit_price * item.quantity for item in quotation_items)
         tax = subtotal * Decimal('0.16')  # Assuming a 16% tax rate
         total = subtotal + tax
+        quotation_data.append({'quotation': quotation, 'total': total})
 
-        # Store the quotation data with the total
-        quotation_data.append({
-            'quotation': quotation,
-            'total': total
-        })
-
-    # Create a list to store invoice data along with the total amount for each quotation
+    # Calculate total revenue
     invoice_data = []
-    total_revenue = Decimal('0.00')  # Initialize total revenue to zero
+    total_revenue = Decimal('0.00')
     for invoice in invoices:
-        # Fetch the related quotation items for the invoice's quotation
         quotation_items = QuotationItem.objects.filter(quotation=invoice.quotation)
-
-        # Calculate the total for the quotation linked to this invoice
         subtotal = sum(item.item.unit_price * item.quantity for item in quotation_items)
-        tax = subtotal * Decimal('0.16')  # Use Decimal for the tax rate
+        tax = subtotal * Decimal('0.16')
         total = subtotal + tax
-
-        # Accumulate the total for revenue
         total_revenue += total
+        invoice_data.append({'invoice': invoice, 'total': total})
 
-        # Calculate profit and expenses
-        # profit = total_revenue * Decimal('0.40')
-        # expenses = total_revenue * Decimal('0.60')
+    # Calculate total expenses
+    total_expenses = sum(expense.amount for expense in expenses)
 
-        # Store invoice data
-        invoice_data.append({
-            'invoice': invoice,
-            'total': total,  # Include total for this invoice
-        })
+    
 
-    # Calculate today's and yesterday's total revenue
+    # Get today's and yesterday's dates
     today = timezone.now().date()
     yesterday = today - timedelta(days=1)
 
-    # Get today's total revenue
-    today_total = sum(
+    # Calculate today's and yesterday's expenses
+    today_expenses = sum(expense.amount for expense in Expense.objects.filter(date=today))
+    yesterday_expenses = sum(expense.amount for expense in Expense.objects.filter(date=yesterday))
+
+    # Calculate percentage change for expenses
+    if yesterday_expenses > 0:
+        expenses_percentage_change = ((today_expenses - yesterday_expenses) / yesterday_expenses) * 100
+    elif today_expenses > 0:
+        expenses_percentage_change = 100.0  # Significant increase if no expenses yesterday
+    else:
+        expenses_percentage_change = 0.0  # No expenses for both days
+
+    # Ensure the percentage change is absolute
+    if expenses_percentage_change < 0:
+        expenses_percentage_change = abs(expenses_percentage_change)
+
+    # Determine change status for expenses
+    if today_expenses > yesterday_expenses:
+        expenses_change_status = 'increase'
+    elif today_expenses < yesterday_expenses:
+        expenses_change_status = 'decrease'
+    else:
+        expenses_change_status = 'flat'
+
+    # Calculate today's and yesterday's total revenue
+    today_total_revenue = sum(
         item.item.unit_price * item.quantity for item in
         QuotationItem.objects.filter(quotation__invoice__date_created__date=today)
     )
-
-    # Get yesterday's total revenue
-    yesterday_total = sum(
+    yesterday_total_revenue = sum(
         item.item.unit_price * item.quantity for item in
         QuotationItem.objects.filter(quotation__invoice__date_created__date=yesterday)
     )
 
-    # Calculate percentage change
-    if yesterday_total > 0:
-        percentage_change = ((today_total - yesterday_total) / yesterday_total) * 100
-    elif today_total > 0:
-        percentage_change = 100.0  # Significant increase if no revenue yesterday
+    # Calculate percentage change for revenue
+    if yesterday_total_revenue > 0:
+        percentage_change = ((today_total_revenue - yesterday_total_revenue) / yesterday_total_revenue) * 100
+    elif today_total_revenue > 0:
+        percentage_change = 100.0
     else:
-        percentage_change = 0.0  # No revenue for both days
-        
-    # Ensure percentage change is an absolute value
+        percentage_change = 0.0
+
     if percentage_change < 0:
         percentage_change = abs(percentage_change)
 
-    # Determine change status
-    if today_total > yesterday_total:
+    # Determine change status for revenue
+    if today_total_revenue > yesterday_total_revenue:
         change_status = 'increase'
-    elif today_total < yesterday_total:
+    elif today_total_revenue < yesterday_total_revenue:
         change_status = 'decrease'
     else:
         change_status = 'flat'
+        
+    # Calculate profit (Revenue - Expenses)
+    profit = today_total_revenue - today_expenses
 
     # Prepare context to send to the template
     context = {
         'invoice_data': invoice_data,
         'quotation_data': quotation_data,
+        'today_total_revenue':today_total_revenue,
         'total_revenue': total_revenue,
-        # 'profit': profit,
-        # 'expenses': expenses,
-        'percentage_change': round(percentage_change, 2),  # Rounded for display
+        'today_expenses':today_expenses,
+        'total_expenses': total_expenses,
+        'profit': profit,
+        'percentage_change': round(percentage_change, 2),
         'change_status': change_status,
+        'expenses_percentage_change': round(expenses_percentage_change, 2),
+        'expenses_change_status': expenses_change_status,
     }
 
     return render(request, 'home.html', context)
+
+
+
 
 
 
@@ -275,7 +473,7 @@ def quotes(request):
         formset = QuotationItemFormSet(queryset=QuotationItem.objects.none())  # Empty formset for new data
 
     # Fetch all quotations and items
-    quotes = Quotation.objects.all()
+    quotes = Quotation.objects.all().order_by('-date_created')
     items = Item.objects.all()
 
     context = {
@@ -315,7 +513,7 @@ def invoices(request):
         form = InvoiceForm()
 
     # Fetch all invoices
-    invoices = Invoice.objects.all()
+    invoices = Invoice.objects.all().order_by('-date_created')
     
     # Fetch all quotations
     quotations = Quotation.objects.all()
@@ -394,7 +592,7 @@ def invoices(request):
 
 def receipts(request):
     # Fetch all receipts
-    receipts = Receipt.objects.all()
+    receipts = Receipt.objects.all().order_by('-date_received')
     
     # Create a list to store receipt data
     receipt_data = []
@@ -431,24 +629,6 @@ def items(request):
         'items': items
     }
     return render(request, 'items.html', context)
-
-# def suppliers(request):
-#     if request.method == 'POST':
-#         form = SupplierForm(request.POST)
-#         if form.is_valid():
-#             form.save()  # Save the supplier to the database
-#             return redirect('suppliers')  # Redirect after successful save
-#     else:
-#         form = SupplierForm()
-
-#     supplier_data = Supplier.objects.all()  # Fetch all suppliers
-
-#     context = {
-#         'form': form,
-#         'supplier_data': supplier_data,  # Pass supplier data to the template
-#     }
-
-#     return render(request, 'suppliers.html', context)
 
 
 
@@ -499,28 +679,38 @@ def dashboard_view(request):
     # Pass the daily totals to the template as 'profit_data'
     return render(request, 'home.html', {'profit_data': daily_totals})
 
-# def expenses(request):
-#     if request.method == 'POST':
-#         form = ExpenseForm(request.POST)
-#         if form.is_valid():
-#             form.save()  # Save the expense to the database
-#             return redirect('expenses')  # Redirect to a success page or back to the expense form
+# Supplier View
+def suppliers(request):
+    if request.method == 'POST':
+        form = SupplierForm(request.POST)
+        if form.is_valid():
+            form.save()
+            return redirect('suppliers')
+    else:
+        form = SupplierForm()
+    
+    suppliers = Supplier.objects.all()
+    return render(request, 'suppliers.html', {'form': form, 'suppliers': suppliers})
 
-#     else:
-#         form = ExpenseForm()  # Create a new form instance for GET requests
+def expenses(request):
+    suppliers = Supplier.objects.all()  # Fetching all suppliers
+    expenses = Expense.objects.all().order_by('-date')  # Fetching all suppliers
+    if request.method == 'POST':
+        form = ExpenseForm(request.POST)
+        if form.is_valid():
+            form.save()
+            return redirect('expenses')  # Adjust to your URL name for listing expenses
+    else:
+        form = ExpenseForm()
 
-#     # Fetch suppliers for the company name dropdown (if applicable)
-#     supplier_data = Supplier.objects.all()  # Get all suppliers
-#     expense_data = Expense.objects.all()  # Get all suppliers
-#     context = {
-#         'form': form,
-#         'supplier_data': supplier_data,
-#         'expense_data': expense_data,
-#         'CATEGORY_TYPE': CATEGORY_TYPE,  # Pass CATEGORY_TYPE to the template
-#         'PAYMENT_METHOD': PAYMENT_METHOD,  # Pass PAYMENT_METHOD to the template
-#     }
+    context = {
+        'form': form,
+        'expenses': expenses,
+        'suppliers': suppliers,  # Pass suppliers to the template
+    }
 
-#     return render(request, 'expenses.html', context)
+    return render(request, 'expenses.html', context)
+
 
 
 

@@ -355,7 +355,7 @@
     growthChart.render();
   }
 
-// Profit Report Line Chart
+// Profit Report Line Chart - Dynamic Colors for Value Changes
 // --------------------------------------------------------------------
 const profileReportChartEl = document.querySelector('#profileReportChart');
 
@@ -373,6 +373,29 @@ if (typeof profileReportChartEl !== undefined && profileReportChartEl !== null) 
           maximumFractionDigits: 0
         });
       };
+
+      // Generate dynamic color changes based on value trends
+      const generateColors = (data) => {
+        let colors = [];
+        for (let i = 0; i < data.length; i++) {
+          if (i === 0) {
+            // Set the initial point color (neutral for the first value)
+            colors.push(config.colors.warning); // Orange or default color
+          } else if (data[i] > data[i - 1]) {
+            // Green for increasing values
+            colors.push('#28a745'); // Apple-like green for upward trend
+          } else if (data[i] < data[i - 1]) {
+            // Red for decreasing values
+            colors.push('#dc3545'); // Red for downward trend
+          } else {
+            // Neutral color if the value remains the same
+            colors.push(config.colors.dark); // Orange or default color
+          }
+        }
+        return colors;
+      };
+
+      const dynamicColors = generateColors(chartData); // Get dynamic colors based on data
 
       const profileReportChartConfig = {
         chart: {
@@ -399,18 +422,19 @@ if (typeof profileReportChartEl !== undefined && profileReportChartEl !== null) 
             right: 8
           }
         },
-        colors: [config.colors.warning],
+        colors: dynamicColors, // Dynamic color based on value changes
         dataLabels: {
           enabled: false
         },
         stroke: {
           width: 5,
-          curve: 'smooth'
+          curve: 'smooth',
+          colors: dynamicColors // Use dynamic colors for stroke lines
         },
         series: [
           {
-            name: 'Revenue',  // Set the label to "Revenue"
-            data: chartData   // Use live data here
+            name: 'Revenue',
+            data: chartData // Use live data here
           }
         ],
         xaxis: {
@@ -443,6 +467,7 @@ if (typeof profileReportChartEl !== undefined && profileReportChartEl !== null) 
     })
     .catch(error => console.error('Error fetching revenue data:', error));
 }
+
 
 
   // Order Statistics Chart

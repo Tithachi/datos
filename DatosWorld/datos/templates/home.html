@@ -59,7 +59,7 @@
                               </i>
                               {{ percentage_change }}%
                             </small>
-                            <h3 class="mb-0">K{{ total_revenue|floatformat:0 }}</h3>
+                            <h3 class="mb-0">K{{ today_total_revenue|floatformat:0 }}</h3>
                           </div>
                         </div>
                         <div id="profileReportChart"></div>
@@ -79,10 +79,20 @@
                         <div class="d-flex flex-sm-column flex-row align-items-start justify-content-between">
                           <div class="card-title">
                             <h5 class="text-nowrap mb-2">Profit</h5>
-                            <span class="badge bg-label-success rounded-pill">LAST 7 DAYS</span>
+                            <span class="badge bg-label-success rounded-pill">TODAY</span>
                           </div>
                           <div class="mt-sm-auto">
-                            <small class="text-danger text-nowrap fw-semibold"><i class="bx bx-chevron-down"></i> 2.2%</small>
+                            <small class="text-nowrap fw-semibold 
+                              {% if profit_change_status == 'increase' %} text-success 
+                              {% elif profit_change_status == 'decrease' %} text-danger 
+                              {% else %} text-warning {% endif %}">
+                              <i class="bx 
+                                {% if profit_change_status == 'increase' %} bx-chevron-up 
+                                {% elif profit_change_status == 'decrease' %} bx-chevron-down 
+                                {% else %} bx-minus {% endif %}">
+                              </i>
+                              {{ profit_percentage_change }}%
+                            </small>
                             <h3 class="mb-0">K{{ profit|floatformat:0 }}</h3>
                           </div>
                         </div>
@@ -90,6 +100,7 @@
                     </div>
                   </div>
                 </div>
+                
               
                 <div class="col-12 col-md-3 mb-4">
                   <div class="card equal-height">
@@ -98,17 +109,28 @@
                         <div class="d-flex flex-sm-column flex-row align-items-start justify-content-between">
                           <div class="card-title">
                             <h5 class="text-nowrap mb-2">Expenses</h5>
-                            <span class="badge bg-label-danger rounded-pill">LAST 7 DAYS</span>
+                            <span class="badge bg-label-danger rounded-pill">TODAY</span>
                           </div>
                           <div class="mt-sm-auto">
-                            <small class="text-success text-nowrap fw-semibold"><i class="bx bx-chevron-up"></i> 5.2%</small>
-                            <h3 class="mb-0">K{{ expenses|floatformat:0 }}</h3>
+                            <small class="text-nowrap fw-semibold 
+                              {% if expenses_change_status == 'increase' %} text-success 
+                              {% elif expenses_change_status == 'decrease' %} text-danger 
+                              {% else %} text-warning {% endif %}">
+                              <i class="bx 
+                                {% if expenses_change_status == 'increase' %} bx-chevron-up 
+                                {% elif expenses_change_status == 'decrease' %} bx-chevron-down 
+                                {% else %} bx-minus {% endif %}">
+                              </i>
+                              {{ expenses_percentage_change }}%
+                            </small>
+                            <h3 class="mb-0">K{{ today_expenses|floatformat:0 }}</h3>
                           </div>
                         </div>
                       </div>
                     </div>
                   </div>
                 </div>
+                
               </div>
               
               

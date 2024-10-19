@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Customer, Item, Quotation, QuotationItem, Invoice, Receipt
+from .models import Customer, Item, Quotation, QuotationItem, Invoice, Receipt, Expense, Supplier
 
 
 # Register your models here.
@@ -55,17 +55,16 @@ class ItemAdmin(admin.ModelAdmin):
     list_display = ('name', 'description','unit_price')
     search_fields = ('name',)
 
-# # Admin for Invoice
-# @admin.register(Supplier)
-# class SupplierAdmin(admin.ModelAdmin):
-#     list_display = ('supplier_id', 'company_name','contact_name', 'phone', 'email', 'address')
-#     search_fields = ('company_name',)
-#     readonly_fields = ('supplier_id',)
+# Admin for Invoice
+@admin.register(Supplier)
+class SupplierAdmin(admin.ModelAdmin):
+    list_display = ('company_name','contact_name', 'phone', 'email', 'address')
+    search_fields = ('company_name',)
 
     
-# # Admin for Invoice
-# @admin.register(Expense)
-# class ExpenseAdmin(admin.ModelAdmin):
-#     list_display = ('expense_id', 'name','description', 'company_name', 'amount')
-#     list_filter = ('category_type', 'date', 'payment_method')
-#     search_fields = ('expense_id',)
+# Admin for Invoice
+@admin.register(Expense)
+class ExpenseAdmin(admin.ModelAdmin):
+    list_display = ('name','description', 'supplier', 'amount')
+    list_filter = ('category_type', 'date', 'payment_method')
+    search_fields = ('date',)
