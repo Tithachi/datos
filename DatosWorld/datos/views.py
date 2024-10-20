@@ -27,6 +27,121 @@ from django.db.models import Q
 from django.urls import reverse
 
 
+from django.shortcuts import get_object_or_404, redirect
+from django.core.mail import EmailMessage
+from django.contrib import messages
+from django.conf import settings
+from io import BytesIO
+from decimal import Decimal
+from .models import Quotation, QuotationItem  # Assuming these are your models
+
+def send_quotation_email(request, quotation_id):
+    try:
+        # Fetch the Quotation entry from the database
+        quotation = get_object_or_404(Quotation, id=quotation_id)
+        
+        # Fetch related items and calculate totals
+        quotation_items = QuotationItem.objects.filter(quotation=quotation)
+        
+        # Create a list of items for the PDF table
+        items = []
+        for q_item in quotation_items:
+            item = q_item.item  # Assuming 'item' is linked to another model with 'description' and 'unit_price' fields
+            item_data = {
+                "name": f"{item.name}",
+                "description": f"{item.description}",
+                "rate": f"{item.unit_price:.2f}",
+                "qty": str(q_item.quantity),
+                "discount": "5.00",  # Example discount value
+                "amount": f"{(item.unit_price * q_item.quantity):.2f}",
+                "tax": f"{(item.unit_price * q_item.quantity * Decimal(0.16)):.2f}",
+            }
+            items.append(item_data)
+        
+        # Calculate totals for the PDF
+        subtotal = sum(float(i['amount']) for i in items)
+        tax = subtotal * 0.16  # Example 16% tax
+        total = subtotal + tax
+
+        # Prepare totals dictionary
+        totals = {
+            'subtotal': f"ZMW {subtotal:.2f}",
+            'tax': f"ZMW {tax:.2f}",
+            'total': f"ZMW {total:.2f}",
+            'paid': 'ZMW 0.00',
+            'balance_due': f"ZMW {total:.2f}",
+            'discount': "ZMW 0.00",
+            'shipping': "ZMW 0.00",
+        }
+        
+        # Dummy company details (replace with actual details or fetch from DB)
+        company_details = {
+            'name': "Datos Technology",
+            'address': "11586 Teagles Rd, Makeni, Lusaka",
+            'email': "info@datoscw.com",
+            'phone': "+260 96 4394236",
+            'payment_info': "MTN Money: +260 96 4394236",
+            'notes': "datos coming soon..."
+        }
+
+        # Client details
+        client_details = {
+            'name': quotation.customer.company,
+            'email': quotation.customer.email,
+            'phone': quotation.customer.phone,
+            'address': quotation.customer.address,
+        }
+
+        # Invoice receipt info
+        receipt_info = {
+            'number': quotation.quotation_number,
+            'date': quotation.date_created.strftime('%Y-%m-%d'),
+            'due_date': quotation.expiry_date.strftime('%Y-%m-%d'),
+            'created_on': quotation.date_created.strftime('%Y-%m-%d %H:%M:%S'),
+        }
+
+        # Create a file-like buffer to receive PDF data
+        buffer = BytesIO()
+
+        # Generate the PDF with actual data
+        generate_quote(
+            buffer,
+            svg_logo_path="C:/Users/Timothy/Desktop/Datos/DatosWorld/static/datos/assets/img/pdf_elements/datosbb.svg",
+            company_details=company_details,
+            client_details=client_details,
+            receipt_info=receipt_info,
+            items=items,
+            totals=totals,
+            watermark_path="C:/Users/Timothy/Desktop/Datos/DatosWorld/static/datos/assets/img/pdf_elements/datos_watermark.png"
+        )
+
+        # File pointer goes to the beginning of the buffer
+        buffer.seek(0)
+
+        # Create an email message
+        email = EmailMessage(
+            subject=f"Quotation for {quotation.customer.company}_{quotation.quotation_number}",
+            body="Please find attached your quotation from Datos Technology.",
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            to=[quotation.customer.email, 'timothy.chimfwembe@datoscw.com'],
+        )
+
+        # Attach the PDF file to the email
+        email.attach(f"{quotation.customer.company}_{quotation.quotation_number}.pdf", buffer.getvalue(), 'application/pdf')
+
+        # Send the email
+        email.send()
+
+        # Display success message
+        messages.success(request, f"Quotation <strong>{quotation.quotation_number}</strong> sent to <strong>{quotation.customer.company}</strong> successfully!")
+
+
+    except Exception as e:
+        # Display error message in case of failure
+        messages.warning(request, f"Failed to send quotation. Error: {str(e)}")
+
+    # Redirect back to the quotes page
+    return redirect('quotes')
 
 
 def send_invoice_email(request, invoice_id):
@@ -436,6 +551,7 @@ def home(request):
         'change_status': change_status,
         'expenses_percentage_change': round(expenses_percentage_change, 2),
         'expenses_change_status': expenses_change_status,
+        'current_page': 'home',
     }
 
     return render(request, 'home.html', context)
@@ -466,7 +582,7 @@ def quotes(request):
 
     # Implement search functionality
     search_query = request.GET.get('search', '')
-    quotes = Quotation.objects.all()
+    quotes = Quotation.objects.all().order_by('-date_created')
 
     if search_query:
         quotes = quotes.filter(
@@ -521,6 +637,7 @@ def quotes(request):
         'quotation_data': quotation_data_page,  # Pass paginated data to template
         'items': items,
         'search_query': search_query,  # Ensure search query persists
+        'current_page': 'quotations',
     }
     return render(request, 'quotes.html', context)
 
@@ -538,13 +655,13 @@ def customers(request):
     customers = Customer.objects.all()  # Fetch all items to display in the table
     context = {
         'form': form,
-        'customers': customers
+        'customers': customers,
+        'current_page': 'customers'
     }
     return render(request, 'customers.html', context)
 
 
 
-from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 
 def invoices(request):
     # Capture search query
@@ -644,13 +761,11 @@ def invoices(request):
         'invoice_data': invoice_data,
         'quotation_data': quotation_data,
         'search_query': search_query,  # Pass search query for pagination links
+        'current_page': 'invoices',
         'invoices': invoices  # Pass the paginated invoices
     }
 
     return render(request, 'invoice.html', context)
-
-
-
 
 
 
@@ -664,9 +779,14 @@ def receipts(request):
         ).order_by('-date_received')
     else:
         receipts = Receipt.objects.all().order_by('-date_received')  # Default behavior: list all receipts
+        
+    # Paginate the results
+    paginator = Paginator(receipts, 7)  # Show 7 receipts per page
+    page_number = request.GET.get('page')
+    receipts_data_page = paginator.get_page(page_number)
 
     receipt_data = []
-    for receipt in receipts:
+    for receipt in receipts_data_page:  # Paginate only this data, not the full receipts
         invoice = receipt.invoice
         receipt_data.append({
             'receipt': receipt,
@@ -677,10 +797,14 @@ def receipts(request):
 
     context = {
         'receipt_data': receipt_data,
+        'receipts_data_page': receipts_data_page,  # Pass paginated data to template
+        'search_query': search_query,  # Pass the search query to keep it in the pagination links
         'search_action_url': reverse('reciepts'),  # Provide the search action URL dynamically
+        'current_page': 'receipts'
     }
 
     return render(request, 'reciepts.html', context)
+
 
 
 
@@ -697,7 +821,8 @@ def items(request):
     items = Item.objects.all()  # Fetch all items to display in the table
     context = {
         'form': form,
-        'items': items
+        'items': items,
+        'current_page': 'items'
     }
     return render(request, 'items.html', context)
 
@@ -761,13 +886,12 @@ def suppliers(request):
         form = SupplierForm()
     
     suppliers = Supplier.objects.all()
-    return render(request, 'suppliers.html', {'form': form, 'suppliers': suppliers})
-
+    return render(request, 'suppliers.html', {'form': form, 'suppliers': suppliers,'current_page': 'items'})
 
 
 def expenses(request):
     search_query = request.GET.get('search', '')  # Capture the search query from the request
-    
+
     if search_query:
         # Filter expenses based on the search query
         expenses = Expense.objects.filter(
@@ -776,16 +900,24 @@ def expenses(request):
     else:
         expenses = Expense.objects.all().order_by('-date')  # Default behavior: list all expenses
 
+    # Paginate the expenses
+    paginator = Paginator(expenses, 7)  # Show 7 expenses per page
+    page_number = request.GET.get('page')
+    expenses_page = paginator.get_page(page_number)
+
     suppliers = Supplier.objects.all()
 
     context = {
         'form': ExpenseForm(),
-        'expenses': expenses,
+        'expenses_page': expenses_page,  # Pass paginated data to the template
         'suppliers': suppliers,
+        'search_query': search_query,  # Pass search query to keep it in pagination links
         'search_action_url': reverse('expenses'),  # Provide the search action URL dynamically
+        'current_page': 'expenses'
     }
 
     return render(request, 'expenses.html', context)
+
 
 
 

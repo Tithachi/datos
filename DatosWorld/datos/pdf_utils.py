@@ -187,7 +187,7 @@ def generate_quote(buffer, svg_logo_path, company_details, client_details, recei
     c.drawString(40, height - 630, company_details['notes'])
 
     c.setFont("Spartan", 8)
-    c.drawString(40, 40, f"Issued on {receipt_info['created_on'].strftime('%Y/%m/%d %H:%M:%S')}")
+    c.drawString(40, 40, f"Issued on {receipt_info['created_on']}")
 
     # Total breakdown (right-aligned only for ZMW values)
     c.setFont("Spartan-Bold", 12)

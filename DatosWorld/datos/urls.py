@@ -14,6 +14,7 @@ urlpatterns = [
     path('view_quote_pdf/<int:entry_id>/', views.view_quote_pdf, name='view_quote_pdf'),
     path('view_invoice_pdf/<int:entry_id>/', views.view_invoice_pdf, name='view_invoice_pdf'),
     path('send_invoice_email/<int:invoice_id>/', views.send_invoice_email, name='send_invoice_email'),
+    path('send_quotation_email/<int:quotation_id>/', views.send_quotation_email, name='send_quotation_email'),
     path('get-revenue-data/', views.get_revenue_data, name='get_revenue_data'),
     # path('deleteexpense/<str:pk>/', views.deleteexpense, name='deleteexpense'),
     # path('listincome/', views.listincome, name='listincome'),
