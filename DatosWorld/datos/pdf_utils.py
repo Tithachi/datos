@@ -9,6 +9,9 @@ import pandas as pd
 from reportlab.pdfbase import ttfonts
 from reportlab.pdfbase import pdfmetrics
 from io import BytesIO
+from reportlab.pdfbase.ttfonts import TTFont
+from reportlab.pdfgen import canvas
+from reportlab.platypus import Table, TableStyle
 
 
 
@@ -107,6 +110,7 @@ def generate_quote(buffer, svg_logo_path, company_details, client_details, recei
     # Client Details (right side under receipt title, aligned right starting from 40 width)
     x_position = width - 40  # Set the x position so text aligns to the right but leaves 40 units of space on the right side
     
+    c.setFillColor(colors.black)
     c.setFont("Spartan-Bold", 10)
     c.drawRightString(x_position, height - 220, "Bill to")
     c.setFont("Spartan-Bold", 14)
@@ -207,10 +211,6 @@ def generate_quote(buffer, svg_logo_path, company_details, client_details, recei
     c.setFont("Spartan-Bold", 14)
     c.drawString(width - 210, height - 610, "Total: ")
     c.drawRightString(width - 40, height - 610, f"{totals['total']}")  # Right-align total
-    
-
-
-
     c.drawImage(signature_image, width - 210, 80, width=100, height=30, mask='auto')  # Adjust the position and size
 
     # Save the PDF
@@ -219,15 +219,17 @@ def generate_quote(buffer, svg_logo_path, company_details, client_details, recei
     
 
 
+
+
 def generate_invoice(buffer, svg_logo_path, company_details, client_details, receipt_info, items, totals, watermark_path):
     # Create a canvas
     c = canvas.Canvas(buffer, pagesize=A4)
     width, height = A4
 
-    spartan_regular = ttfonts.TTFont('Spartan', "C:/Users/Timothy/Desktop/Datos/DatosWorld/static/datos/fonts/League_Spartan/static/LeagueSpartan-Light.ttf")
+    spartan_regular = TTFont('Spartan', "C:/Users/Timothy/Desktop/Datos/DatosWorld/static/datos/fonts/League_Spartan/static/LeagueSpartan-Light.ttf")
     pdfmetrics.registerFont(spartan_regular)
 
-    spartan_bold = ttfonts.TTFont('Spartan-Bold', "C:/Users/Timothy/Desktop/Datos/DatosWorld/static/datos/fonts/League_Spartan/static/LeagueSpartan-ExtraBold.ttf")
+    spartan_bold = TTFont('Spartan-Bold', "C:/Users/Timothy/Desktop/Datos/DatosWorld/static/datos/fonts/League_Spartan/static/LeagueSpartan-ExtraBold.ttf")
     pdfmetrics.registerFont(spartan_bold)
 
     def draw_header(c, svg_logo_path, company_details, client_details, receipt_info, width, height):
@@ -267,42 +269,66 @@ def generate_invoice(buffer, svg_logo_path, company_details, client_details, rec
         c.drawRightString(x_position, height - 285, client_details['phone'])
         c.drawRightString(x_position, height - 300, client_details['address'])
 
-    def draw_footer(c, totals, width, height):
-        # Totals, and other footer elements
-        c.setFont("Spartan-Bold", 11)
-        c.drawString(width - 210, 150, "Subtotal: ")
-        c.drawRightString(width - 40, 150, f"{totals['subtotal']}")
-        c.setFont("Spartan", 10)
-        c.drawString(width - 210, 200, "VAT @16%: ")
-        c.drawRightString(width - 40, 200, f"{totals['tax']}")
-        c.setFont("Spartan-Bold", 11)
-        c.drawString(width - 210, 225, "Total: ")
-        c.drawRightString(width - 40, 225, f"{totals['total']}")
-        c.setFont("Spartan", 10)
-        c.drawString(width - 210, 245, "Amount paid: ")
-        c.drawRightString(width - 40, 245, f"{totals['paid']}")
+    def draw_footer(c, totals, width, height, y_position):
+        # Update y_position to draw the footer just below the table
+        y_offset = 100  # Adjust this value to control the vertical space before the totals section
+        current_y_position = y_position - y_offset
+        
+        c.setFont("Spartan", 8)
+        c.drawString(40, 40, f"Prepared by {receipt_info['user']}, on {receipt_info['created_on']}")
+
+        # Draw totals, and other footer elements
         c.setFont("Spartan-Bold", 12)
-        c.drawString(width - 210, 265, "Balance Due: ")
-        c.drawRightString(width - 40, 265, f"{totals['balance_due']}")
+        c.drawString(width - 210, current_y_position, "Subtotal: ")
+        c.drawRightString(width - 40, current_y_position, f"{totals['subtotal']}")
+        c.setFont("Spartan", 10)
+        c.drawString(width - 210, current_y_position - 50, "VAT @16%: ")
+        c.drawRightString(width - 40, current_y_position - 50, f"{totals['tax']}")
+        c.setFont("Spartan-Bold", 12)
+        c.drawString(width - 210, current_y_position - 75, "Total: ")
+        c.drawRightString(width - 40, current_y_position - 75, f"{totals['total']}")
+        c.setFont("Spartan", 10)
+        c.drawString(width - 210, current_y_position - 95, "Amount paid: ")
+        c.drawRightString(width - 40, current_y_position - 95, f"{totals['paid']}")
+        c.setFont("Spartan-Bold", 15)
+        c.drawString(width - 250, current_y_position - 115, "Balance Due: ")
+        c.drawRightString(width - 40, current_y_position - 115, f"{totals['balance_due']}")
         # Example of page number:
         c.setFont("Spartan", 8)
         page_num = c.getPageNumber()
         c.drawRightString(width - 40, 30, f"Page {page_num}")
 
-    def draw_table(c, items, width, height, available_height):
+    def draw_table(c, items, width, height, available_height, y_position):
         table_data = [["DESCRIPTION", "UNIT PRICE (K)", "QUANTITY", "TOTAL AMOUNT (K)"]]
         for item in items:
-            table_data.append([item['description'], f"{item['rate']}", str(item['qty']), f"{item['amount']}"])
+            table_data.append([item['name'], f"{item['rate']}", str(item['qty']), f"{item['amount']}"])
 
         table_style = TableStyle([
+            # Header row styling
             ('BACKGROUND', (0, 0), (-1, 0), colors.navy),
             ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
             ('FONTNAME', (0, 0), (-1, 0), 'Spartan-Bold'),
             ('FONTSIZE', (0, 0), (-1, 0), 10),
             ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
-            ('ALIGN', (0, 0), (-1, 0), 'CENTER'),
-            ('ALIGN', (0, 1), (-1, -1), 'LEFT'),
+
+            # Align the headers
+            ('ALIGN', (0, 0), (0, 0), 'LEFT'),     # Description header aligned left
+            ('ALIGN', (1, 0), (-1, 0), 'CENTER'),   # Rate, Qty, Tax, Amount headers aligned center
+
+            # Align the rows (Description: left, others: right)
+            ('ALIGN', (0, 1), (0, -1), 'LEFT'),    # Description column aligned left
+            ('ALIGN', (1, 1), (-1, -1), 'RIGHT'),  # Rate, Qty, Tax, Amount columns aligned right
+
+            # Row styling
+            ('FONTNAME', (0, 1), (-1, -1), 'Spartan'),
+            ('FONTSIZE', (0, 1), (-1, -1), 10),
         ])
+
+        # Add alternating row colors
+        for row in range(1, len(table_data)):
+            bg_color = colors.whitesmoke if row % 2 == 0 else colors.white
+            table_style.add('BACKGROUND', (0, row), (-1, row), bg_color)
+
         total_table_width = width - 80
         colWidths = [total_table_width * 0.4, total_table_width * 0.2, total_table_width * 0.2, total_table_width * 0.2]
         table = Table(table_data, colWidths=colWidths)
@@ -315,27 +341,38 @@ def generate_invoice(buffer, svg_logo_path, company_details, client_details, rec
         if table_height > available_height:
             return False, table_height  # Signals that the content is too big for the current page
         else:
-            table.drawOn(c, 40, height - 420)
-            return True, table_height
+            # Draw the table at the y_position passed, ensuring it starts below the sections above it
+            table.drawOn(c, 40, y_position - table_height)
+            return True, y_position - table_height  # Update y_position for subsequent content
 
     def paginate_items(c, items, width, height, footer_height=150):
         # Calculate available height for the table on each page
-        available_height = height - 400  # Adjusted for headers
-        start_index = 0
+        header_height = 400  # Adjust for header height (space used by From, Bill to, etc.)
+        available_height = height - header_height - footer_height  # Adjust for headers and footers
+        y_position = height - header_height + 55  # The y-position where the table starts
 
+        start_index = 0
         while start_index < len(items):
             c.saveState()
+
+            # Draw header and footer on each page
             draw_header(c, svg_logo_path, company_details, client_details, receipt_info, width, height)
-            success, table_height = draw_table(c, items[start_index:], width, height, available_height)
-            draw_footer(c, totals, width, height)
+            success, y_position = draw_table(c, items[start_index:], width, height, available_height, y_position)
+            draw_footer(c, totals, width, height, y_position)  # Pass the updated y_position
 
             if success:
                 break  # All items fit on the page
             else:
-                start_index += 10  # Adjust this based on your row count
-                c.showPage()  # Move to next page
+                start_index += 10  # Adjust based on how many rows fit per page
+                c.showPage()  # Move to the next page
+                y_position = height - header_height  # Reset the y_position for the new page
+
             c.restoreState()
 
+
+    # Set transparency (alpha value) for the watermark
+    c.saveState()  # Save the current graphics state
+    c.setFillAlpha(0.6)  # Set transparency level (1.0 is opaque, 0.0 is fully transparent)
     # Draw watermark
     watermark_width = width
     watermark_height = height
@@ -347,3 +384,4 @@ def generate_invoice(buffer, svg_logo_path, company_details, client_details, rec
     # Final page
     c.showPage()
     c.save()
+

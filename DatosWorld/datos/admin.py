@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Customer, Item, Quotation, QuotationItem, Invoice, Receipt, Expense, Supplier
+from .models import Customer, Item, Quotation, QuotationItem, Invoice, Receipt, Expense, Supplier, Company,Bank, KPI, Task, WeeklyReport, MonthlyReport, YearlyReport, Reminder
 
 
 # Register your models here.
@@ -68,3 +68,57 @@ class ExpenseAdmin(admin.ModelAdmin):
     list_display = ('name','description', 'supplier', 'amount')
     list_filter = ('category_type', 'date', 'payment_method')
     search_fields = ('date',)
+
+# Admin for Company model
+@admin.register(Company)
+class CompanyAdmin(admin.ModelAdmin):
+    list_display = ('name', 'manager', 'address', 'tpin')  # Displaying payment methods and manager
+    list_filter = ('manager',)  # Filter by payment method or manager
+    search_fields = ('name', 'tpin', 'address')
+    filter_horizontal = ('members',)  # For easier selection of users
+
+
+# Admin for Bank model
+@admin.register(Bank)
+class BankAdmin(admin.ModelAdmin):
+    list_display = ('name', 'swift_code')
+    search_fields = ('name', 'swift_code')
+
+# Admin for Task model
+@admin.register(Task)
+class TaskAdmin(admin.ModelAdmin):
+    list_display = ('task_name', 'progress', 'risk_level', 'kpi', 'due_date', 'created_by', 'subunit')
+    list_filter = ('risk_level', 'due_date', 'kpi')
+    search_fields = ('task_name', 'created_by__username', 'subunit__name')
+
+# Admin for KPI model
+@admin.register(KPI)
+class KPIAdmin(admin.ModelAdmin):
+    list_display = ('name', 'description', 'workstream')
+    list_filter = ('workstream',)
+    search_fields = ('name',)
+
+# Admin for WeeklyReport
+@admin.register(WeeklyReport)
+class WeeklyReportAdmin(admin.ModelAdmin):
+    list_display = ('subunit', 'start_date', 'end_date')
+    search_fields = ('subunit__name',)
+
+# Admin for MonthlyReport
+@admin.register(MonthlyReport)
+class MonthlyReportAdmin(admin.ModelAdmin):
+    list_display = ('subunit', 'month')
+    search_fields = ('subunit__name',)
+
+# Admin for YearlyReport
+@admin.register(YearlyReport)
+class YearlyReportAdmin(admin.ModelAdmin):
+    list_display = ('subunit', 'year')
+    search_fields = ('subunit__name',)
+
+# Admin for Reminder
+@admin.register(Reminder)
+class ReminderAdmin(admin.ModelAdmin):
+    list_display = ('task', 'reminder_date', 'message')
+    list_filter = ('reminder_date',)
+    search_fields = ('task__task_name',)

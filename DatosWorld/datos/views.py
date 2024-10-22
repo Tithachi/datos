@@ -138,106 +138,120 @@ def send_quotation_email(request, quotation_id):
 
     except Exception as e:
         # Display error message in case of failure
-        messages.warning(request, f"Failed to send quotation. Error: {str(e)}")
+        messages.warning(request, "Opps, seems like there was an error, please check your network and try again")
 
     # Redirect back to the quotes page
     return redirect('quotes')
 
 
 def send_invoice_email(request, invoice_id):
-    # Fetch the Invoice entry from the database
-    invoice = get_object_or_404(Invoice, id=invoice_id)
+    try:
     
-    # Fetch related items and calculate totals (similar to your previous view)
-    quotation_items = QuotationItem.objects.filter(quotation=invoice.quotation)
-    
-    # Create a list of items for the PDF table
-    items = []
-    for q_item in quotation_items:
-        item = q_item.item  # Assuming 'item' is linked to another model with 'description' and 'unit_price' fields
-        item_data = {
-            "name": f"{item.name}",
-            "description": f"{item.description}",
-            "rate": f"{item.unit_price:.2f}",
-            "qty": str(q_item.quantity),
-            "discount": "5.00",  # Example discount value
-            "amount": f"{(item.unit_price * q_item.quantity):.2f}",
-            "tax": f"{(item.unit_price * q_item.quantity * Decimal(0.16)):.2f}",
+        # Fetch the Invoice entry from the database
+        invoice = get_object_or_404(Invoice, id=invoice_id)
+        
+        # Fetch related items and calculate totals (similar to your previous view)
+        quotation_items = QuotationItem.objects.filter(quotation=invoice.quotation)
+        
+        # Create a list of items for the PDF table
+        items = []
+        for q_item in quotation_items:
+            item = q_item.item  # Assuming 'item' is linked to another model with 'description' and 'unit_price' fields
+            item_data = {
+                "name": f"{item.name}",
+                "description": f"{item.description}",
+                "rate": f"{item.unit_price:.2f}",
+                "qty": str(q_item.quantity),
+                "discount": "5.00",  # Example discount value
+                "amount": f"{(item.unit_price * q_item.quantity):.2f}",
+                "tax": f"{(item.unit_price * q_item.quantity * Decimal(0.16)):.2f}",
+            }
+            items.append(item_data)
+        
+        # Calculate totals for the PDF
+        subtotal = sum(float(i['amount']) for i in items)
+        tax = subtotal * 0.16  # Example 16% tax
+        total = subtotal + tax
+
+        # Prepare totals dictionary
+        totals = {
+            'subtotal': f"ZMW {subtotal:.2f}",
+            'tax': f"ZMW {tax:.2f}",
+            'total': f"ZMW {total:.2f}",
+            'paid': 'ZMW 0.00',  # Example value
+            'balance_due': f"ZMW {total:.2f}",
         }
-        items.append(item_data)
-    
-    # Calculate totals for the PDF
-    subtotal = sum(float(i['amount']) for i in items)
-    tax = subtotal * 0.16  # Example 16% tax
-    total = subtotal + tax
+        
+        # Dummy company details (replace with actual details or fetch from DB)
+        company_details = {
+            'name': "Datos Technology",
+            'address': "11586 Teagles Rd, Makeni, Lusaka",
+            'email': "info@datoscw.com",
+            'phone': "+260 96 4394236",
+            'payment_info': "MTN Money: +260 96 4394236",
+            'notes': "datos coming soon..."
+        }
 
-    # Prepare totals dictionary
-    totals = {
-        'subtotal': f"ZMW {subtotal:.2f}",
-        'tax': f"ZMW {tax:.2f}",
-        'total': f"ZMW {total:.2f}",
-        'paid': 'ZMW 0.00',  # Example value
-        'balance_due': f"ZMW {total:.2f}",
-    }
-    
-    # Dummy company details (replace with actual details or fetch from DB)
-    company_details = {
-        'name': "Datos Technology",
-        'address': "11586 Teagles Rd, Makeni, Lusaka",
-        'email': "info@datoscw.com",
-        'phone': "+260 96 4394236",
-        'payment_info': "MTN Money: +260 96 4394236",
-        'notes': "datos coming soon..."
-    }
+        # Client details
+        client_details = {
+            'name': invoice.quotation.customer.company,
+            'email': invoice.quotation.customer.email,
+            'phone': invoice.quotation.customer.phone,
+            'address': invoice.quotation.customer.address,
+        }
 
-    # Client details
-    client_details = {
-        'name': invoice.quotation.customer.company,
-        'email': invoice.quotation.customer.email,
-        'phone': invoice.quotation.customer.phone,
-        'address': invoice.quotation.customer.address,
-    }
+        # Invoice receipt info
+        receipt_info = {
+            'number': invoice.invoice_number,
+            'date': invoice.date_created.strftime('%Y-%m-%d'),
+            'due_date': invoice.due_date.strftime('%Y-%m-%d'),
+            'user': f'{ request.user.first_name } { request.user.last_name }',
+            'created_on': datetime.now(),
+        }
 
-    # Invoice receipt info
-    receipt_info = {
-        'number': invoice.invoice_number,
-        'date': invoice.date_created.strftime('%Y-%m-%d'),
-        'due_date': invoice.due_date.strftime('%Y-%m-%d'),
-    }
+        # Create a file-like buffer to receive PDF data
+        buffer = BytesIO()
 
-    # Create a file-like buffer to receive PDF data
-    buffer = BytesIO()
+        # Generate the PDF with actual data
+        generate_invoice(
+            buffer,
+            svg_logo_path="C:/Users/Timothy/Desktop/Datos/DatosWorld/static/datos/assets/img/pdf_elements/datosbb.svg",
+            company_details=company_details,
+            client_details=client_details,
+            receipt_info=receipt_info,
+            items=items,
+            totals=totals,
+            watermark_path="C:/Users/Timothy/Desktop/Datos/DatosWorld/static/datos/assets/img/pdf_elements/datos_watermark.png"
+        )
 
-    # Generate the PDF with actual data
-    generate_invoice(
-        buffer,
-        svg_logo_path="C:/Users/Timothy/Desktop/Datos/DatosWorld/static/datos/assets/img/pdf_elements/datosbb.svg",
-        company_details=company_details,
-        client_details=client_details,
-        receipt_info=receipt_info,
-        items=items,
-        totals=totals,
-        watermark_path="C:/Users/Timothy/Desktop/Datos/DatosWorld/static/datos/assets/img/pdf_elements/datos_watermark.png"
-    )
+        # File pointer goes to the beginning of the buffer
+        buffer.seek(0)
 
-    # File pointer goes to the beginning of the buffer
-    buffer.seek(0)
+        # Create an email message
+        email = EmailMessage(
+            subject=f"Invoice {invoice.invoice_number}",
+            body="Please find attached your invoice from Datos Technology.",
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            to=[invoice.quotation.customer.email,'timothy.chimfwembe@datoscw.com'],
+        )
 
-    # Create an email message
-    email = EmailMessage(
-        subject=f"Invoice {invoice.invoice_number}",
-        body="Please find attached your invoice from Datos Technology.",
-        from_email=settings.DEFAULT_FROM_EMAIL,
-        to=[invoice.quotation.customer.email,'timothy.chimfwembe@datoscw.com'],
-    )
+        # Attach the PDF file to the email
+        email.attach(f"Invoice_{invoice.invoice_number}.pdf", buffer.getvalue(), 'application/pdf')
 
-    # Attach the PDF file to the email
-    email.attach(f"Invoice_{invoice.invoice_number}.pdf", buffer.getvalue(), 'application/pdf')
+        # Send the email
+        email.send()
 
-    # Send the email
-    email.send()
+        # Display success message
+        messages.success(request, f"Invoice <strong>{invoice.invoice_number}</strong> sent to <strong>{invoice.quotation.customer.company}</strong> successfully!")
 
-    return HttpResponse("Invoice sent successfully!")
+
+    except Exception as e:
+        # Display error message in case of failure
+        messages.warning(request, "Opps, seems like there was an error, please check your network and try again")
+
+    # Redirect back to the quotes page
+    return redirect('invoices')
+
 
 
 
@@ -335,7 +349,7 @@ def view_quote_pdf(request, entry_id):
         'number': quotation.quotation_number,
         'date': quotation.date_created.strftime('%Y-%m-%d'),
         'due_date': quotation.expiry_date.strftime('%Y-%m-%d'),
-        'created_on': pd.Timestamp.now(),  # Simulating the created_on field for example purposes
+        'created_on': datetime.now(),  # Simulating the created_on field for example purposes
     }
 
     # Create a file-like buffer to receive PDF data
@@ -389,13 +403,13 @@ def view_invoice_pdf(request, entry_id):
     balance_due = Decimal(total) - invoice.amount_paid
 
     totals = {
-        'subtotal': f"ZMW {subtotal:.2f}",
+        'subtotal': f"ZMW {subtotal:,.2f}",
         'discount': 'ZMW 0.00',  # Example value
         'shipping': 'ZMW 0.00',  # Example value
-        'tax': f"ZMW {tax:.2f}",
-        'total': f"ZMW {total:.2f}",
-        'paid': f"ZMW {invoice.amount_paid:.2f}",
-        'balance_due': f"ZMW {balance_due:.2f}",  # Now works without the error
+        'tax': f"ZMW {tax:,.2f}",
+        'total': f"ZMW {total:,.2f}",
+        'paid': f"ZMW {invoice.amount_paid:,.2f}",
+        'balance_due': f"ZMW {balance_due:,.2f}",  # Now works without the error
     }
 
     # Dummy company details (replace with actual details or fetch from DB)
@@ -419,16 +433,17 @@ def view_invoice_pdf(request, entry_id):
     # Invoice receipt info
     receipt_info = {
         'number': invoice.invoice_number,
+        'user': f'{request.user.first_name} {request.user.last_name}',
         'date': invoice.date_created.strftime('%Y-%m-%d'),
         'due_date': invoice.due_date.strftime('%Y-%m-%d'),
-        'created_on': pd.Timestamp.now(),  # Simulating the created_on field for example purposes
+        'created_on': datetime.now().now(),  # Simulating the created_on field for example purposes
     }
 
     # Create a file-like buffer to receive PDF data
     buffer = BytesIO()
 
     # Generate the PDF with actual data
-    generate_quote(
+    generate_invoice(
         buffer,
         svg_logo_path="C:/Users/Timothy/Desktop/Datos/DatosWorld/static/datos/assets/img/pdf_elements/datosbb.svg",
         company_details=company_details,

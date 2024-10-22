@@ -43,8 +43,9 @@
                       <tr>
                         <th>Receipt Number</th>
                         <th>Invoice Number</th>
+                        <th>Customer</th>
                         <th>Amount Received</th>
-                        <th>Due Date</th>
+                        <th>Actions</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -52,8 +53,21 @@
                       <tr>
                         <td>{{ receipt.receipt.receipt_number }}</td>
                         <td>{{ receipt.invoice.invoice_number }}</td>
+                        <td>{{ receipt.invoice.quotation.customer.company }}</td>
                         <td>{{ receipt.amount_received }}</td>
-                        <td>{{ receipt.due_date }}</td>
+                        <td>
+                          <div class="dropdown">
+                              <button type="button" class="btn p-0 dropdown-toggle hide-arrow" data-bs-toggle="dropdown">
+                                  <i class="bx bx-dots-vertical-rounded"></i>
+                              </button>
+                              <div class="dropdown-menu">
+                                  <a class="dropdown-item" href="#"><i class="bx bx-cctv me-1"></i> Preview PDF</a>
+                                  <a class="dropdown-item" href="#"><i class="bx bx-download me-1"></i> Download</a>
+                                  <a class="dropdown-item" href="#"><i class="bx bx-mail-send me-1"></i> Send</a>
+                                  <a class="dropdown-item" href="#"><i class="bx bx-trash me-1"></i> Delete</a>
+                              </div>
+                          </div>
+                      </td>
                       </tr>
                       {% empty %}
                       <tr>
