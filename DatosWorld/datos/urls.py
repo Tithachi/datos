@@ -16,6 +16,7 @@ urlpatterns = [
     path('send_invoice_email/<int:invoice_id>/', views.send_invoice_email, name='send_invoice_email'),
     path('send_quotation_email/<int:quotation_id>/', views.send_quotation_email, name='send_quotation_email'),
     path('get-revenue-data/', views.get_revenue_data, name='get_revenue_data'),
+    path('task_home/', views.task_home, name='task_home'),
     # path('deleteexpense/<str:pk>/', views.deleteexpense, name='deleteexpense'),
     # path('listincome/', views.listincome, name='listincome'),
     # path('addincome/', views.addincome, name='addincome'),

@@ -68,4 +68,15 @@ class ExpenseForm(forms.ModelForm):
     class Meta:
         model = Expense
         fields = ['supplier', 'name', 'description', 'category_type', 'payment_method', 'amount', 'date']
+        
+        
+class KPIForm(forms.ModelForm):
+    class Meta:
+        model = KPI
+        fields = ['name', 'description','workstream']
+
+class TaskForm(forms.ModelForm):
+    class Meta:
+        model = Task
+        fields = ['task_name', 'description', 'progress', 'due_date', 'kpi', 'subunit','risk_level','created_by']
 

@@ -1,6 +1,6 @@
 from django.shortcuts import render, redirect
 from .models import *
-from .forms import ItemForm, CustomerForm, QuotationItemFormSet, QuotationForm, InvoiceForm, SupplierForm, ExpenseForm
+from .forms import ItemForm, CustomerForm, QuotationItemFormSet, QuotationForm, InvoiceForm, SupplierForm, ExpenseForm, TaskForm, KPIForm
 from django.shortcuts import render, redirect,get_object_or_404
 from .forms import QuotationForm, QuotationItemFormSet
 from .models import Quotation, Item
@@ -34,6 +34,7 @@ from django.conf import settings
 from io import BytesIO
 from decimal import Decimal
 from .models import Quotation, QuotationItem  # Assuming these are your models
+from django.utils.timezone import now
 
 def send_quotation_email(request, quotation_id):
     try:
@@ -932,6 +933,150 @@ def expenses(request):
     }
 
     return render(request, 'expenses.html', context)
+
+
+def task_home(request):
+    tasks = Task.objects.all().order_by('due_date')  # Renamed to 'tasks'
+    
+    today = now().date()
+    
+    # Calculate the start of the week as the most recent Sunday
+    start_of_week = today - timedelta(days=(today.weekday() + 1) % 7)
+    # Calculate the end of the week as the Saturday following the start of the week
+    end_of_week = start_of_week + timedelta(days=6)
+    
+    tasks_due_today = Task.objects.filter(due_date=today).count()
+    overdue_tasks = Task.objects.filter(due_date__lt=today, progress__lt=100).count()
+    
+    tasks_this_week = Task.objects.filter(due_date__range=[start_of_week, end_of_week])
+    total_tasks = tasks_this_week.count()
+    completed_tasks = tasks_this_week.filter(progress=100).count()
+    grand_total_task = Task.objects.all().count()
+
+    if total_tasks > 0:
+        productivity = (completed_tasks / total_tasks) * 100
+    else:
+        productivity = 0
+        
+    task_status = []
+    for task in tasks:  # Use 'tasks' for the loop
+        if task.progress == 0:
+            status = 'NOT STARTED'
+        elif task.progress < 100:
+            status = 'IN PROGRESS'
+        else:
+            status = 'COMPLETED'
+        task_status.append({'task': task, 'status': status})
+        
+    # Set up pagination
+    paginator = Paginator(task_status, 5)  # 5 tasks per page
+    page = request.GET.get('page', 1)
+
+    try:
+        paginated_tasks = paginator.page(page)
+    except PageNotAnInteger:
+        paginated_tasks = paginator.page(1)
+    except EmptyPage:
+        paginated_tasks = paginator.page(paginator.num_pages)
+        
+    # Capture search query
+    search_query = request.GET.get('search', '')
+
+    # Fetch all tasks or filter based on the search query
+    if search_query:
+        tasks = Task.objects.filter(
+            Q(created_by__first_name__icontains=search_query) |
+            Q(created_by__last_name__icontains=search_query) |
+            Q(task_name__icontains=search_query)
+        ).order_by('-due_date')
+    else:
+        tasks = Task.objects.all().order_by('due_date')
+
+    context = {
+        'tasks_due_today': tasks_due_today,
+        'overdue_tasks': overdue_tasks,
+        'productivity': productivity,
+        'completed_tasks': completed_tasks,
+        'total_tasks': total_tasks,
+        'search_query': search_query,
+        'paginated_tasks': paginated_tasks,  # Pass 'paginated_tasks' to the template
+        'task_status': task_status,  # Pass the paginated version
+    }
+
+    return render(request, 'task_home.html', context)
+
+
+
+
+# List all KPIs
+def kpi_list(request):
+    kpis = KPI.objects.all()
+    return render(request, 'kpi_list.html', {'kpis': kpis})
+
+# Create a new KPI
+def kpi_create(request):
+    if request.method == "POST":
+        form = KPIForm(request.POST)
+        if form.is_valid():
+            form.save()
+            return redirect('kpi_list')
+    else:
+        form = KPIForm()
+    return render(request, 'kpi_form.html', {'form': form})
+
+# Update an existing KPI
+def kpi_update(request, pk):
+    kpi = get_object_or_404(KPI, pk=pk)
+    if request.method == "POST":
+        form = KPIForm(request.POST, instance=kpi)
+        if form.is_valid():
+            form.save()
+            return redirect('kpi_list')
+    else:
+        form = KPIForm(instance=kpi)
+    return render(request, 'kpi_form.html', {'form': form})
+
+# Delete a KPI
+def kpi_delete(request, pk):
+    kpi = get_object_or_404(KPI, pk=pk)
+    if request.method == "POST":
+        kpi.delete()
+        return redirect('kpi_list')
+    return render(request, 'kpi_confirm_delete.html', {'kpi': kpi})
+
+# Similar views for Tasks
+def task_list(request):
+    tasks = Task.objects.all().order_by('due_date')
+    return render(request, 'task_list.html', {'tasks': tasks})
+
+def task_create(request):
+    if request.method == "POST":
+        form = TaskForm(request.POST)
+        if form.is_valid():
+            form.save()
+            return redirect('task_list')
+    else:
+        form = TaskForm()
+    return render(request, 'task_form.html', {'form': form})
+
+def task_update(request, pk):
+    task = get_object_or_404(Task, pk=pk)
+    if request.method == "POST":
+        form = TaskForm(request.POST, instance=task)
+        if form.is_valid():
+            form.save()
+            return redirect('task_list')
+    else:
+        form = TaskForm(instance=task)
+    return render(request, 'task_form.html', {'form': form})
+
+def task_delete(request, pk):
+    task = get_object_or_404(Task, pk=pk)
+    if request.method == "POST":
+        task.delete()
+        return redirect('task_list')
+    return render(request, 'task_confirm_delete.html', {'task': task})
+
 
 
 
