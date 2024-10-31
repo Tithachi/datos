@@ -1,6 +1,6 @@
 from django.shortcuts import render, redirect
 from .models import *
-from .forms import ItemForm, CustomerForm, QuotationItemFormSet, QuotationForm, InvoiceForm, SupplierForm, ExpenseForm, TaskForm, KPIForm
+from .forms import ItemForm, CustomerForm, QuotationItemFormSet, QuotationForm, InvoiceForm, SupplierForm, ExpenseForm, TaskForm, KPIForm, CustomUserCreationForm, CustomAuthenticationForm
 from django.shortcuts import render, redirect,get_object_or_404
 from .forms import QuotationForm, QuotationItemFormSet
 from .models import Quotation, Item
@@ -25,8 +25,10 @@ from .models import Invoice, QuotationItem  # Adjust the import according to you
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.db.models import Q
 from django.urls import reverse
-
-
+from .forms import CustomUserCreationForm
+from django.contrib.auth import login
+from django.contrib.auth import authenticate, login,logout
+from django.contrib.auth.decorators import login_required
 from django.shortcuts import get_object_or_404, redirect
 from django.core.mail import EmailMessage
 from django.contrib import messages
@@ -35,6 +37,45 @@ from io import BytesIO
 from decimal import Decimal
 from .models import Quotation, QuotationItem  # Assuming these are your models
 from django.utils.timezone import now
+
+def loginpage(request):
+    if request.user.is_authenticated:
+        return redirect('dashboard')
+    else:
+        if request.method == 'POST':
+            form = CustomAuthenticationForm(request, data=request.POST)
+            if form.is_valid():
+                user = form.get_user()
+                login(request, user)
+                # Redirect to a success page after successful login
+                return redirect('home')  # Replace 'success_page' with the URL name of your success page
+        else:
+            form = CustomAuthenticationForm()
+
+    # Render the login form template with the form
+    return render(request, 'loginpage.html', {'form': form})
+
+def registerpage(request):
+    if request.user.is_authenticated:
+        return redirect('home')
+    else:
+        form = CustomUserCreationForm()
+    
+        if request.method == 'POST':
+            form = CustomUserCreationForm(request.POST)
+            if form.is_valid():
+                    form.save()
+                    # Redirect to a success page after successful registration
+                    return redirect('loginpage')  # Replace 'success_page' with the URL name of your success page
+    
+
+        # Render the registration form template with the form, even if it's not valid
+        return render(request, 'registerpage.html', {'form': form})
+
+
+def logoutpage(request):
+    logout(request)
+    return redirect('loginpage')
 
 def send_quotation_email(request, quotation_id):
     try:
@@ -462,7 +503,7 @@ def view_invoice_pdf(request, entry_id):
     return HttpResponse(buffer, content_type='application/pdf')
 
 
-
+@login_required(login_url='loginpage')
 def home(request):
     # Fetch all invoices, quotations, and expenses
     invoices = Invoice.objects.all().order_by('-date_created')
@@ -1076,6 +1117,9 @@ def task_delete(request, pk):
         task.delete()
         return redirect('task_list')
     return render(request, 'task_confirm_delete.html', {'task': task})
+
+def profile(request):
+    return render(request, 'profile.html')
 
 
 

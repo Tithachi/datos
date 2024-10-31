@@ -5,6 +5,20 @@ from .models import *
 from django.forms import ModelForm
 from django.forms import inlineformset_factory, BaseInlineFormSet
 
+class CustomUserCreationForm(UserCreationForm):
+    email = forms.EmailField(label='Email')
+    first_name = forms.CharField(label='First Name')
+    last_name = forms.CharField(label='Last Name')
+
+    class Meta(UserCreationForm.Meta):
+        model = User
+        fields = UserCreationForm.Meta.fields + ('email', 'first_name', 'last_name', 'username', 'password1', 'password2')
+
+
+class CustomAuthenticationForm(AuthenticationForm):
+    username = forms.CharField(widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Username'}))
+    password = forms.CharField(widget=forms.PasswordInput(attrs={'class': 'form-control', 'placeholder': 'Password'}))
+
 
 class ItemForm(forms.ModelForm):
     class Meta:
@@ -78,5 +92,5 @@ class KPIForm(forms.ModelForm):
 class TaskForm(forms.ModelForm):
     class Meta:
         model = Task
-        fields = ['task_name', 'description', 'progress', 'due_date', 'kpi', 'subunit','risk_level','created_by']
+        fields = ['task_name', 'description', 'progress', 'due_date', 'kpi','risk_level']
 
