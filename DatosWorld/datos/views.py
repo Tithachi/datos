@@ -1119,7 +1119,9 @@ def task_delete(request, pk):
     return render(request, 'task_confirm_delete.html', {'task': task})
 
 def profile(request):
-    return render(request, 'profile.html')
+    # Retrieve the Profile instance associated with the logged-in user
+    user_profile = get_object_or_404(Profile, user=request.user)
+    return render(request, 'profile.html', {'user_profile': user_profile})
 
 
 
